@@ -537,14 +537,21 @@
         ]
       },
       {
-        id: "word_juice", word: "juice", layout: "single",
+        id: "word_juice", word: "juice", layout: "standard",
         fullTts: "juice",
         chunks: [
-          { text: "juice", tts: "joos", highlights: [
-            { target: "ui", cssClass: "color-grape-purple", hintClass: "hl-purple", note: "紫色 ui，像葡萄汁 🍇" },
-            { target: "ce", cssClass: "style-silent-e", hintClass: "hl-silent", note: "灰色虛線：e 不發音，讓 c 唸 /s/" }
+          { text: "jui", tts: "joo", highlights: [
+            { target: "ui", cssClass: "color-grape-purple", hintClass: "hl-purple", note: "紫色 ui，像葡萄汁 🍇" }
+          ]},
+          { text: "ce", tts: "suh", highlights: [
+            { target: "ce", cssClass: "style-silent-e", hintClass: "hl-silent", note: "c 遇到 e 唸 /s/，e 不發音" }
           ]}
-        ]
+        ],
+        rootInfo: {
+          targetChunk: "jui", emoji: "🍇",
+          title: "🍇 juice（果汁）",
+          story: "juice 來自拉丁文 jus，就是「液體」的意思！果汁就是水果流出來的液體！"
+        }
       },
       {
         id: "word_icecream", word: "ice cream", layout: "compound",
