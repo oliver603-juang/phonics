@@ -581,7 +581,6 @@
     let currentUser = 'iggy';
     const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo' };
     let preferredVoice = null;
-    let audioManifest = null; // MP3 音檔清單
 
     function findBestVoice() {
       const voices = synth.getVoices();
@@ -591,18 +590,7 @@
       if (preferredVoice) console.log('🔊 Voice:', preferredVoice.name);
     }
 
-    // MP3 播放（零延遲、跨裝置一致）
-    function playAudio(path) {
-      return new Promise(resolve => {
-        const audio = new Audio(path);
-        audio.onended = resolve;
-        audio.onerror = () => { console.warn('Audio failed:', path); resolve(); };
-        audio.play().catch(() => resolve());
-      });
-    }
-
-    // Web Speech API fallback
-    function speakTTS(text, rate = 0.75) {
+    function speak(text, rate = 0.75) {
       synth.cancel();
       return new Promise(resolve => {
         const u = new SpeechSynthesisUtterance(text);
@@ -613,28 +601,20 @@
       });
     }
 
-    // 統一發音入口：MP3 優先 → Web Speech API fallback
-    function speak(text, rate = 0.75) {
-      return speakTTS(text, rate);
-    }
-
     function speakChunk(chunk, rate = 0.75) {
-      if (chunk.audioPath) return playAudio(chunk.audioPath);
-      // 先查是否有手動修正
       const lesson = LESSONS[currentWordIdx];
       if (lesson) {
         const ci = lesson.chunks.indexOf(chunk);
         if (ci >= 0) {
           const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
-          return speakTTS(override, rate);
+          return speak(override, rate);
         }
       }
-      return speakTTS(chunk.tts || chunk.text, rate);
+      return speak(chunk.tts || chunk.text, rate);
     }
 
     function speakFullWord(lesson, rate = 0.8) {
-      if (lesson.fullAudio) return playAudio(lesson.fullAudio);
-      return speakTTS(lesson.fullTts || lesson.word, rate);
+      return speak(lesson.fullTts || lesson.word, rate);
     }
 
     // ══════════════════════════════════════════
@@ -651,22 +631,6 @@
     function getOverriddenTts(word, chunkIdx, defaultTts) {
       const o = getTtsOverrides();
       return o[word.toLowerCase() + '_' + chunkIdx] || defaultTts;
-    }
-
-    // 將 manifest 合併到 LESSONS 中
-    function mergeAudioManifest() {
-      if (!audioManifest) return;
-      for (const lesson of LESSONS) {
-        const entry = audioManifest[lesson.word.toLowerCase()];
-        if (!entry) continue;
-        lesson.fullAudio = entry.full;
-        if (entry.chunks) {
-          entry.chunks.forEach((ac, i) => {
-            if (lesson.chunks[i]) lesson.chunks[i].audioPath = ac.audio;
-          });
-        }
-      }
-      console.log('🎵 Audio manifest merged');
     }
 
     function speakChinese(text) {
@@ -753,26 +717,45 @@ JSON 範例：
     }
 
     // 智慧解析：快取 → Gemini → 靜態詞庫 → 基本
-    async function resolveWord(word) {
-      const cached = getCache(word);
+    async function resolveWord(input) {
+      // 有 - 分隔 = 手動切割，不讓 Gemini 覆蓋音節
+      if (input.includes('-')) {
+        const chunks = input.split('-').map(s => s.trim()).filter(Boolean);
+        const word = chunks.join('');
+        const cached = getCache(input);
+        if (cached) return cached;
+        // 查靜態詞庫看有沒有 highlights
+        const dictKey = word.toLowerCase().replace(/[\s\.\']/g, '');
+        const dictEntry = (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[dictKey]);
+        const e = {
+          word: word, layout: chunks.length === 1 ? 'single' : 'standard',
+          fullTts: word,
+          chunks: chunks.map(text => {
+            // 從靜態詞庫找匹配的 chunk 拿 highlights
+            const match = dictEntry?.chunks?.find(c => c.text === text);
+            return { text, tts: match?.tts || text, highlights: match?.highlights || [] };
+          })
+        };
+        // 如果靜態詞庫有 rootInfo 就帶入
+        if (dictEntry?.rootInfo) e.rootInfo = dictEntry.rootInfo;
+        setCache(input, e);
+        return e;
+      }
+
+      // 沒有 - = 讓系統決定切法
+      const cached = getCache(input);
       if (cached) return cached;
       if (GEMINI_KEY) {
-        const g = await fetchFromGemini(word);
-        if (g?.chunks?.length) { setCache(word, g); return g; }
+        const g = await fetchFromGemini(input);
+        if (g?.chunks?.length) { setCache(input, g); return g; }
       }
-      const key = word.toLowerCase().replace(/[\s\-\.\']/g, '');
+      const key = input.toLowerCase().replace(/[\s\-\.\']/g, '');
       if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key]) {
         const e = JSON.parse(JSON.stringify(PHONICS_DICT[key]));
-        setCache(word, e); return e;
+        setCache(input, e); return e;
       }
-      if (word.includes('-')) {
-        const ch = word.split('-').map(s => s.trim()).filter(Boolean);
-        const e = { word: ch.join(''), layout: ch.length === 1 ? 'single' : 'standard',
-          fullTts: ch.join(''), chunks: ch.map(t => ({ text: t, tts: t, highlights: [] })) };
-        setCache(word, e); return e;
-      }
-      const e = { word, layout: 'single', fullTts: word, chunks: [{ text: word, tts: word, highlights: [] }] };
-      setCache(word, e); return e;
+      const e = { word: input, layout: 'single', fullTts: input, chunks: [{ text: input, tts: input, highlights: [] }] };
+      setCache(input, e); return e;
     }
 
     // ══════════════════════════════════════════
@@ -947,7 +930,6 @@ JSON 範例：
     // ══════════════════════════════════════════
     function loadCurrentWord() {
       if (!LESSONS.length) return;
-      mergeAudioManifest(); // 合併 MP3 路徑
       const lesson = LESSONS[currentWordIdx];
       document.getElementById('next-word-btn').classList.remove('show');
       document.getElementById('celebration').classList.remove('show');
@@ -1021,7 +1003,7 @@ JSON 範例：
             setTtsOverride(lessonRef.word, chunkIdx, newVal);
             chunkRef.tts = newVal;
             buildPhase1(lessonRef);
-            speakTTS(newVal, 0.75);
+            speak(newVal, 0.75);
           }
           input.onkeydown = (ev) => { if (ev.key === 'Enter') save(); if (ev.key === 'Escape') buildPhase1(lessonRef); };
           input.onblur = save;
@@ -1200,9 +1182,8 @@ JSON 範例：
       if (!lesson) return;
       const chunk = lesson.chunks[ci];
       if (!chunk) return;
-      if (chunk.audioPath) { playAudio(chunk.audioPath); return; }
       const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
-      speakTTS(override, 0.75);
+      speak(override, 0.75);
     }
 
     // ══════════════════════════════════════════
@@ -1396,18 +1377,6 @@ Respond with JSON only:
 
       // 載入該使用者的字單
       loadUserLessons();
-
-      // 載入 MP3 音檔清單（如果存在）
-      fetch('assets/audio-manifest.json')
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data) {
-            audioManifest = data;
-            mergeAudioManifest();
-            console.log('🎵 Audio manifest loaded:', Object.keys(data).length, 'words');
-          }
-        })
-        .catch(() => console.log('ℹ️ No audio manifest, using Web Speech API'));
 
       renderWordPills();
       loadCurrentWord();
