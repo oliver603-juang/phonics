@@ -1,4 +1,4 @@
-const CACHE_NAME = 'phonics-v2';
+const CACHE_NAME = 'phonics-v3';
 const ASSETS = [
   './',
   './index.html',

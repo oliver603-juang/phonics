@@ -223,6 +223,21 @@
     .icon-btn.check { background: var(--gold); }
     .icon-btn.erase { background: #FFE8E8; }
 
+    /* ═══ TTS 手動修正標籤 ═══ */
+    .tts-label {
+      display: block; text-align: center; margin-top: 2px;
+      font-size: 0.65rem; color: #bbb; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .tts-label:hover { color: #4A90E2; }
+    .tts-label .tts-edit-icon { font-size: 0.55rem; margin-left: 2px; }
+    .tts-edit-input {
+      width: 80px; padding: 4px 8px; border: 2px solid #FFD700;
+      border-radius: 12px; font-family: inherit; font-size: 0.8rem;
+      text-align: center; outline: none; background: #FFFDE7;
+      display: block; margin: 4px auto 0;
+    }
+
     .p3-footer {
       display: flex; align-items: center; justify-content: center;
       gap: 10px; margin-top: 4px; min-height: 30px; width: 100%;
@@ -558,18 +573,29 @@
     let usingDefaults = true;
     let currentUser = 'iggy';
     const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo' };
-    let preferredVoice = null; // 快取 Google 語音
+    let preferredVoice = null;
+    let audioManifest = null; // MP3 音檔清單
 
     function findBestVoice() {
       const voices = synth.getVoices();
-      // 優先 Google US English → 其次任何 Google 英文 → 最後任何 en-US
       preferredVoice = voices.find(v => v.name === 'Google US English') ||
                        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
                        null;
       if (preferredVoice) console.log('🔊 Voice:', preferredVoice.name);
     }
 
-    function speak(text, rate = 0.75) {
+    // MP3 播放（零延遲、跨裝置一致）
+    function playAudio(path) {
+      return new Promise(resolve => {
+        const audio = new Audio(path);
+        audio.onended = resolve;
+        audio.onerror = () => { console.warn('Audio failed:', path); resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    }
+
+    // Web Speech API fallback
+    function speakTTS(text, rate = 0.75) {
       synth.cancel();
       return new Promise(resolve => {
         const u = new SpeechSynthesisUtterance(text);
@@ -579,14 +605,68 @@
         synth.speak(u);
       });
     }
+
+    // 統一發音入口：MP3 優先 → Web Speech API fallback
+    function speak(text, rate = 0.75) {
+      return speakTTS(text, rate);
+    }
+
+    function speakChunk(chunk, rate = 0.75) {
+      if (chunk.audioPath) return playAudio(chunk.audioPath);
+      // 先查是否有手動修正
+      const lesson = LESSONS[currentWordIdx];
+      if (lesson) {
+        const ci = lesson.chunks.indexOf(chunk);
+        if (ci >= 0) {
+          const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
+          return speakTTS(override, rate);
+        }
+      }
+      return speakTTS(chunk.tts || chunk.text, rate);
+    }
+
+    function speakFullWord(lesson, rate = 0.8) {
+      if (lesson.fullAudio) return playAudio(lesson.fullAudio);
+      return speakTTS(lesson.fullTts || lesson.word, rate);
+    }
+
+    // ══════════════════════════════════════════
+    // TTS 手動修正（localStorage 持久化）
+    // ══════════════════════════════════════════
+    function getTtsOverrides() {
+      try { return JSON.parse(localStorage.getItem('phonics-tts-overrides') || '{}'); } catch(e) { return {}; }
+    }
+    function setTtsOverride(word, chunkIdx, ttsValue) {
+      const o = getTtsOverrides();
+      o[word.toLowerCase() + '_' + chunkIdx] = ttsValue;
+      localStorage.setItem('phonics-tts-overrides', JSON.stringify(o));
+    }
+    function getOverriddenTts(word, chunkIdx, defaultTts) {
+      const o = getTtsOverrides();
+      return o[word.toLowerCase() + '_' + chunkIdx] || defaultTts;
+    }
+
+    // 將 manifest 合併到 LESSONS 中
+    function mergeAudioManifest() {
+      if (!audioManifest) return;
+      for (const lesson of LESSONS) {
+        const entry = audioManifest[lesson.word.toLowerCase()];
+        if (!entry) continue;
+        lesson.fullAudio = entry.full;
+        if (entry.chunks) {
+          entry.chunks.forEach((ac, i) => {
+            if (lesson.chunks[i]) lesson.chunks[i].audioPath = ac.audio;
+          });
+        }
+      }
+      console.log('🎵 Audio manifest merged');
+    }
+
     function speakChinese(text) {
       synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'zh-TW'; u.rate = 0.9;
       synth.speak(u);
-    }
-    function speakChunk(chunk, rate = 0.75) {
-      return speak(chunk.tts || chunk.text, rate);
     }
 
     // ══════════════════════════════════════════
@@ -860,6 +940,7 @@ JSON 範例：
     // ══════════════════════════════════════════
     function loadCurrentWord() {
       if (!LESSONS.length) return;
+      mergeAudioManifest(); // 合併 MP3 路徑
       const lesson = LESSONS[currentWordIdx];
       document.getElementById('next-word-btn').classList.remove('show');
       document.getElementById('celebration').classList.remove('show');
@@ -912,6 +993,33 @@ JSON 範例：
           group.appendChild(span);
         });
         container.appendChild(group);
+
+        // TTS 發音標籤（可點擊修改）
+        const currentTts = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
+        const label = document.createElement('div');
+        label.className = 'tts-label';
+        label.innerHTML = '🔤 ' + currentTts + ' <span class="tts-edit-icon">✏️</span>';
+        label.title = '點擊修改發音';
+        label.onclick = ((chunkRef, chunkIdx, lessonRef) => (e) => {
+          e.stopPropagation();
+          const curVal = getOverriddenTts(lessonRef.word, chunkIdx, chunkRef.tts || chunkRef.text);
+          const input = document.createElement('input');
+          input.className = 'tts-edit-input';
+          input.value = curVal;
+          input.placeholder = '輸入發音拼寫';
+          label.replaceWith(input);
+          input.focus(); input.select();
+          function save() {
+            const newVal = input.value.trim() || curVal;
+            setTtsOverride(lessonRef.word, chunkIdx, newVal);
+            chunkRef.tts = newVal;
+            buildPhase1(lessonRef);
+            speakTTS(newVal, 0.75);
+          }
+          input.onkeydown = (ev) => { if (ev.key === 'Enter') save(); if (ev.key === 'Escape') buildPhase1(lessonRef); };
+          input.onblur = save;
+        })(chunk, ci, lesson);
+        container.appendChild(label);
       });
 
       // 教學提示
@@ -960,7 +1068,7 @@ JSON 範例：
 
       // 全部亮 + 完整唸
       await new Promise(r => setTimeout(r, 200));
-      await speak(lesson.fullTts, 0.8);
+      await speakFullWord(lesson);
     }
 
     // ══════════════════════════════════════════
@@ -1081,8 +1189,13 @@ JSON 範例：
     }
 
     function speakChunkByIdx(ci) {
-      const chunk = LESSONS[currentWordIdx]?.chunks[ci];
-      if (chunk) speakChunk(chunk);
+      const lesson = LESSONS[currentWordIdx];
+      if (!lesson) return;
+      const chunk = lesson.chunks[ci];
+      if (!chunk) return;
+      if (chunk.audioPath) { playAudio(chunk.audioPath); return; }
+      const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
+      speakTTS(override, 0.75);
     }
 
     // ══════════════════════════════════════════
@@ -1252,7 +1365,7 @@ Respond with JSON only:
     function checkAllComplete() {
       if (document.querySelectorAll('.syl-box canvas.locked').length === canvasIds.length) {
         document.getElementById('celebration').classList.add('show');
-        speak(LESSONS[currentWordIdx].fullTts, 0.8);
+        speakFullWord(LESSONS[currentWordIdx]);
         if (currentWordIdx < LESSONS.length - 1)
           document.getElementById('next-word-btn').classList.add('show');
       }
@@ -1276,6 +1389,19 @@ Respond with JSON only:
 
       // 載入該使用者的字單
       loadUserLessons();
+
+      // 載入 MP3 音檔清單（如果存在）
+      fetch('assets/audio-manifest.json')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            audioManifest = data;
+            mergeAudioManifest();
+            console.log('🎵 Audio manifest loaded:', Object.keys(data).length, 'words');
+          }
+        })
+        .catch(() => console.log('ℹ️ No audio manifest, using Web Speech API'));
+
       renderWordPills();
       loadCurrentWord();
 
