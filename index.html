@@ -256,6 +256,41 @@
       padding:5px 12px; border:none; border-radius:16px;
       background:#eee; color:#888; cursor:pointer;
     }
+
+    /* ═══ OCR 結果 Toast ═══ */
+    .ocr-toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      z-index: 20000; padding: 20px 28px;
+      background: white; border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      text-align: center; font-family: 'Fredoka', sans-serif;
+      animation: popin 0.3s ease; min-width: 260px;
+    }
+    .ocr-toast .ocr-label { font-size: 0.8rem; color: #999; margin-bottom: 4px; }
+    .ocr-toast .ocr-seen { font-size: 2.5rem; font-weight: 800; color: #333; }
+    .ocr-toast .ocr-vs { font-size: 0.85rem; color: #aaa; margin: 6px 0; }
+    .ocr-toast .ocr-expected { font-size: 1.5rem; font-weight: 700; color: #888; }
+    .ocr-toast .ocr-result { font-size: 1.2rem; font-weight: 700; margin-top: 8px; }
+    .ocr-toast .ocr-ok { color: #32CD32; }
+    .ocr-toast .ocr-ng { color: #FF6347; }
+
+    /* ═══ 無 Key 警告 ═══ */
+    .no-key-warning {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      z-index: 20000; padding: 24px 30px;
+      background: #FFF3CD; border: 2px solid #FFD700; border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      text-align: center; font-family: 'Fredoka', sans-serif;
+      animation: popin 0.3s ease; max-width: 320px;
+    }
+    .no-key-warning .nk-icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .no-key-warning .nk-title { font-size: 1.1rem; font-weight: 700; color: #856404; margin-bottom: 8px; }
+    .no-key-warning .nk-text { font-size: 0.85rem; color: #856404; line-height: 1.5; margin-bottom: 12px; }
+    .no-key-warning .nk-btn {
+      padding: 8px 20px; border: none; border-radius: 16px;
+      background: var(--gold); color: #333; font-family: inherit;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    }
     .next-word-btn {
       margin-top: 6px; padding: 8px 20px;
       font-family: inherit; font-size: .95rem; font-weight: 700;
@@ -1325,9 +1360,28 @@ JSON 範例：
     }
 
     // ══════════════════════════════════════════
+    // Gemini Key 檢查
+    // ══════════════════════════════════════════
+    function showNoKeyWarning() {
+      // 如果已經有警告在顯示就不重複
+      if (document.querySelector('.no-key-warning')) return false;
+      const warn = document.createElement('div');
+      warn.className = 'no-key-warning';
+      warn.innerHTML = `
+        <div class="nk-icon">🔑</div>
+        <div class="nk-title">尚未設定 Gemini API Key</div>
+        <div class="nk-text">手寫辨識需要 Gemini AI。<br>請按右上角 ⚙️ 設定並輸入你的 Key。</div>
+        <button class="nk-btn" onclick="this.parentElement.remove(); openSettings();">前往設定</button>
+      `;
+      document.body.appendChild(warn);
+      return false; // 表示沒有 key
+    }
+
+    // ══════════════════════════════════════════
     // 驗證
     // ══════════════════════════════════════════
     async function verifySingle(canvasId) {
+      if (!GEMINI_KEY) { showNoKeyWarning(); return; }
       const canvas = document.getElementById(canvasId);
       if (!canvas || canvas.classList.contains('locked')) return;
       if (isCanvasBlank(canvas)) {
@@ -1358,6 +1412,7 @@ JSON 範例：
 
     // 依序檢查所有音節（點最後一個 ✅ 觸發）
     async function verifyAll() {
+      if (!GEMINI_KEY) { showNoKeyWarning(); return; }
       const loader = document.getElementById('loader');
       loader.classList.add('show');
 
@@ -1468,7 +1523,22 @@ Examples:
         const expected = target.toLowerCase().trim();
         const isCorrect = seen === expected;
 
-        console.log(`OCR: 看到="${seen}" 正確答案="${expected}" → ${isCorrect ? '✅' : '❌'}`);
+        // 顯示 OCR 結果 Toast
+        const toast = document.createElement('div');
+        toast.className = 'ocr-toast';
+        toast.innerHTML = `
+          <div class="ocr-label">AI 看到：</div>
+          <div class="ocr-seen">${seen || '（空白）'}</div>
+          <div class="ocr-vs">VS 正確答案</div>
+          <div class="ocr-expected">${expected}</div>
+          <div class="ocr-result ${isCorrect ? 'ocr-ok' : 'ocr-ng'}">
+            ${isCorrect ? '✅ 正確！' : '❌ 不符合'}
+          </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+
+        console.log(`OCR: 看到="${seen}" 正確="${expected}" → ${isCorrect ? '✅' : '❌'}`);
         return isCorrect;
       } catch(err) {
         console.error('Gemini OCR error:', err);
