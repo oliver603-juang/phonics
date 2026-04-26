@@ -1,0 +1,97 @@
+{
+  "hamburger": {
+    "full": "assets/audio/hamburger_full.mp3",
+    "chunks": [
+      {
+        "text": "ham",
+        "audio": "assets/audio/hamburger_0_ham.mp3"
+      },
+      {
+        "text": "burg",
+        "audio": "assets/audio/hamburger_1_burg.mp3"
+      },
+      {
+        "text": "er",
+        "audio": "assets/audio/hamburger_2_er.mp3"
+      }
+    ]
+  },
+  "hot dog": {
+    "full": "assets/audio/hot_dog_full.mp3",
+    "chunks": [
+      {
+        "text": "hot",
+        "audio": "assets/audio/hot_dog_0_hot.mp3"
+      },
+      {
+        "text": "dog",
+        "audio": "assets/audio/hot_dog_1_dog.mp3"
+      }
+    ]
+  },
+  "water": {
+    "full": "assets/audio/water_full.mp3",
+    "chunks": [
+      {
+        "text": "wa",
+        "audio": "assets/audio/water_0_wa.mp3"
+      },
+      {
+        "text": "ter",
+        "audio": "assets/audio/water_1_ter.mp3"
+      }
+    ]
+  },
+  "milk": {
+    "full": "assets/audio/milk_full.mp3",
+    "chunks": [
+      {
+        "text": "milk",
+        "audio": "assets/audio/milk_0_milk.mp3"
+      }
+    ]
+  },
+  "juice": {
+    "full": "assets/audio/juice_full.mp3",
+    "chunks": [
+      {
+        "text": "jui",
+        "audio": "assets/audio/juice_0_jui.mp3"
+      },
+      {
+        "text": "ce",
+        "audio": "assets/audio/juice_1_ce.mp3"
+      }
+    ]
+  },
+  "ice cream": {
+    "full": "assets/audio/ice_cream_full.mp3",
+    "chunks": [
+      {
+        "text": "ice",
+        "audio": "assets/audio/ice_cream_0_ice.mp3"
+      },
+      {
+        "text": "cream",
+        "audio": "assets/audio/ice_cream_1_cream.mp3"
+      }
+    ]
+  },
+  "computer": {
+    "full": "assets/audio/computer_full.mp3",
+    "chunks": [
+      {
+        "text": "com",
+        "audio": "assets/audio/computer_0_com.mp3"
+      },
+      {
+        "text": "pu",
+        "audio": "assets/audio/computer_1_pu.mp3"
+      },
+      {
+        "text": "ter",
+        "audio": "assets/audio/computer_2_ter.mp3"
+      }
+    ]
+  }
+}
