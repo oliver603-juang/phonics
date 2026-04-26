@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Phonics">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <title>Phonics 拼音練習</title>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -301,8 +301,9 @@
         <label>單字列表（每行一個，用 - 分音節）</label>
         <textarea id="word-input" placeholder="ham-bur-ger&#10;milk&#10;wa-ter"></textarea>
         <div class="hint-text">
-          範例：ham-bur-ger → 拆成 3 個音節框<br>
-          單音節直接寫：milk、juice
+          直接輸入單字即可，例如 computer、water<br>
+          詞庫會自動切音節並套用顏色標記<br>
+          詞庫外的字可用 - 手動切：syl-la-ble
         </div>
       </div>
       <div class="section">
@@ -357,6 +358,7 @@
     <button class="next-word-btn" id="next-word-btn" onclick="goNextWord()">👉 下一個單字</button>
   </div>
 
+  <script src="phonics-dict.js"></script>
   <script>
     // ══════════════════════════════════════════════════════════════
     //  資料驅動核心：Phonics Lessons 資料結構
@@ -481,10 +483,9 @@
     function openSettings() {
       document.getElementById('settings-modal').classList.add('open');
       const ta = document.getElementById('word-input');
-      if (usingDefaults) {
-        ta.value = LESSONS.map(l => l.chunks.map(c => c.text).join('-')).join('\n');
-      } else {
-        ta.value = LESSONS.map(l => l.chunks.map(c => c.text).join('-')).join('\n');
+      if (LESSONS.length > 0) {
+        // 顯示簡潔的單字名稱（不用 -）
+        ta.value = LESSONS.map(l => l.word).join('\n');
       }
       document.getElementById('api-key-input').value = API_KEY;
     }
@@ -500,6 +501,38 @@
       loadCurrentWord();
     }
 
+    function parseWordLine(line) {
+      // 1. 先用原始輸入查詞庫（支援直接輸入 computer、ice cream 等）
+      const lookupKey = line.toLowerCase().replace(/[\s\-\.\']/g, '');
+      if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[lookupKey]) {
+        return JSON.parse(JSON.stringify(PHONICS_DICT[lookupKey]));
+      }
+
+      // 2. 如果有 - 分隔，嘗試合併後查詞庫
+      if (line.includes('-')) {
+        const chunks = line.split('-').map(s => s.trim()).filter(Boolean);
+        const word = chunks.join('');
+        const key2 = word.toLowerCase().replace(/[\s\.\']/g, '');
+        if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key2]) {
+          return JSON.parse(JSON.stringify(PHONICS_DICT[key2]));
+        }
+        // 詞庫沒有，用手動切割
+        return {
+          id: `word_${word}`, word: word,
+          layout: chunks.length === 1 ? 'single' : 'standard',
+          fullTts: word,
+          chunks: chunks.map(text => ({ text, tts: text, highlights: [] }))
+        };
+      }
+
+      // 3. 都沒有，當作單一音節
+      return {
+        id: `word_${line}`, word: line,
+        layout: 'single', fullTts: line,
+        chunks: [{ text: line, tts: line, highlights: [] }]
+      };
+    }
+
     function saveSettings() {
       const raw = document.getElementById('word-input').value.trim();
       const key = document.getElementById('api-key-input').value.trim();
@@ -508,41 +541,10 @@
       API_KEY = key;
       try { localStorage.setItem('phonics-api-key', key); } catch(e) {}
 
-      // 檢查是否跟預設字單一樣
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-      const defaultLines = DEFAULT_LESSONS.map(l => l.chunks.map(c => c.text).join('-'));
-      const isDefault = lines.length === defaultLines.length &&
-        lines.every((l, i) => l === defaultLines[i]);
-
-      if (isDefault) {
-        LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
-        usingDefaults = true;
-        try { localStorage.removeItem('phonics-custom'); } catch(e) {}
-      } else {
-        // 自訂字單：嘗試匹配預設的教學資料
-        LESSONS = lines.map(line => {
-          const chunks = line.split('-').map(s => s.trim()).filter(Boolean);
-          const word = chunks.join(chunks.length > 1 ? '' : '');
-
-          // 先看看有沒有匹配的預設 lesson
-          const match = DEFAULT_LESSONS.find(d =>
-            d.chunks.map(c => c.text).join('-') === line
-          );
-          if (match) return JSON.parse(JSON.stringify(match));
-
-          // 沒有的話就建立基本 lesson
-          return {
-            id: `word_${word}`, word: word,
-            layout: chunks.length === 1 ? 'single' : 'standard',
-            fullTts: word,
-            chunks: chunks.map(text => ({
-              text, tts: text, highlights: []
-            }))
-          };
-        });
-        usingDefaults = false;
-        try { localStorage.setItem('phonics-custom', JSON.stringify(LESSONS)); } catch(e) {}
-      }
+      LESSONS = lines.map(parseWordLine);
+      usingDefaults = false;
+      try { localStorage.setItem('phonics-custom', JSON.stringify(LESSONS)); } catch(e) {}
 
       currentWordIdx = 0;
       closeSettings();

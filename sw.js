@@ -1,10 +1,11 @@
-const CACHE_NAME = 'phonics-v1';
+const CACHE_NAME = 'phonics-v2';
 const ASSETS = [
   './',
   './index.html',
+  './phonics-dict.js',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
+  './icon-192.png',
+  './icon-512.png',
   'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@700;800;900&display=swap'
 ];
 
