@@ -287,6 +287,75 @@
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
     @keyframes pulse-border { 0%,100%{border-color:var(--color-ur)} 50%{border-color:var(--gold)} }
     @keyframes popin { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+    /* ═══ 字根指示器 ═══ */
+    .root-badge {
+      display: inline-block; cursor: pointer;
+      font-size: 0.5em; vertical-align: super;
+      animation: sparkle 1.5s ease-in-out infinite;
+      filter: drop-shadow(0 0 3px rgba(255,200,0,0.6));
+    }
+    @keyframes sparkle {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.3); }
+    }
+    .root-badge-box {
+      position: absolute; top: 4px; left: 4px;
+      font-size: 1rem; z-index: 3;
+      cursor: pointer; animation: sparkle 1.5s ease-in-out infinite;
+    }
+
+    /* ═══ 字根故事 Modal ═══ */
+    .root-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 10001;
+      background: rgba(0,0,0,0.5);
+      align-items: center; justify-content: center;
+      padding: 20px; animation: fadeUp 0.2s ease;
+    }
+    .root-modal-overlay.open { display: flex; }
+    .root-modal {
+      background: white; border-radius: 28px; padding: 28px;
+      max-width: 360px; width: 100%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      animation: popin 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+    }
+    .root-modal .root-emoji { font-size: 3rem; margin-bottom: 8px; }
+    .root-modal .root-title {
+      font-size: 1.3rem; font-weight: 700; color: #333; margin-bottom: 12px;
+    }
+    .root-modal .root-story {
+      font-size: 1rem; color: #555; line-height: 1.7;
+      padding: 14px; background: #FFF8E1; border-radius: 16px;
+      margin-bottom: 16px;
+    }
+    .root-modal .root-close {
+      padding: 10px 28px; border: none; border-radius: 24px;
+      background: var(--gold); color: #333; font-family: inherit;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    .root-modal .root-listen {
+      padding: 10px 20px; border: none; border-radius: 24px;
+      background: #E8F4FD; color: #4A90E2; font-family: inherit;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-right: 8px;
+    }
+
+    /* ═══ 載入字單 Overlay ═══ */
+    .fetch-overlay {
+      display: none; position: fixed; inset: 0; z-index: 10002;
+      background: rgba(255,248,240,0.95);
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px;
+    }
+    .fetch-overlay.show { display: flex; }
+    .fetch-overlay .fo-title { font-size: 1.2rem; font-weight: 700; color: #333; }
+    .fetch-overlay .fo-word { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
+    .fetch-overlay .fo-bar {
+      width: 260px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;
+    }
+    .fetch-overlay .fo-fill {
+      height: 100%; background: var(--gold); border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .fetch-overlay .fo-status { font-size: 0.85rem; color: #999; }
   </style>
 </head>
 <body>
@@ -298,8 +367,8 @@
     <div class="modal">
       <h2>📝 今日字單設定</h2>
       <div class="section">
-        <label>單字列表（每行一個，用 - 分音節）</label>
-        <textarea id="word-input" placeholder="ham-bur-ger&#10;milk&#10;wa-ter"></textarea>
+        <label>單字列表（每行一個）</label>
+        <textarea id="word-input" placeholder="hamburger&#10;computer&#10;water&#10;ice cream"></textarea>
         <div class="hint-text">
           直接輸入單字即可，例如 computer、water<br>
           詞庫會自動切音節並套用顏色標記<br>
@@ -307,9 +376,13 @@
         </div>
       </div>
       <div class="section">
-        <label>🔑 Anthropic API Key（GitHub Pages 部署時需要）</label>
-        <input type="password" id="api-key-input" placeholder="sk-ant-...">
-        <div class="hint-text">金鑰只存在你的裝置上。在 claude.ai 中可留空。</div>
+        <label>🧠 Gemini API Key（AI 音節分析 + 字根故事 + 手寫辨識）</label>
+        <input type="password" id="gemini-key-input" placeholder="AIza...">
+        <div class="hint-text">
+          免費申請：<a href="https://aistudio.google.com/apikey" target="_blank" style="color:#4A90E2">Google AI Studio</a><br>
+          一把 Key 搞定所有功能：音節切割、字根故事、手寫辨識。<br>
+          已分析過的字會存在裝置上，不重複呼叫。
+        </div>
       </div>
       <div class="modal-btns">
         <button class="modal-btn reset-default" onclick="resetToDefault()">🔄 恢復預設字單</button>
@@ -358,6 +431,25 @@
     <button class="next-word-btn" id="next-word-btn" onclick="goNextWord()">👉 下一個單字</button>
   </div>
 
+  <!-- 字根故事 Modal -->
+  <div class="root-modal-overlay" id="root-modal">
+    <div class="root-modal">
+      <div class="root-emoji" id="root-emoji">🏰</div>
+      <div class="root-title" id="root-title"></div>
+      <div class="root-story" id="root-story"></div>
+      <button class="root-listen" onclick="readRootStory()">🔊 唸給我聽</button>
+      <button class="root-close" onclick="closeRootModal()">知道了！</button>
+    </div>
+  </div>
+
+  <!-- AI 載入進度 -->
+  <div class="fetch-overlay" id="fetch-overlay">
+    <div class="fo-title">🧠 AI 老師正在分析單字...</div>
+    <div class="fo-word" id="fo-word"></div>
+    <div class="fo-bar"><div class="fo-fill" id="fo-fill" style="width:0%"></div></div>
+    <div class="fo-status" id="fo-status">準備中...</div>
+  </div>
+
   <script src="phonics-dict.js"></script>
   <script>
     // ══════════════════════════════════════════════════════════════
@@ -369,13 +461,18 @@
         fullTts: "hamburger",
         chunks: [
           { text: "ham", tts: "ham", highlights: [] },
-          { text: "bur", tts: "bur", highlights: [
-            { target: "ur", cssClass: "color-ur", hintClass: "hl-ur", note: "橘色 ur，像漢堡 🍔" }
+          { text: "burg", tts: "burg", highlights: [
+            { target: "ur", cssClass: "color-ur", hintClass: "hl-ur", note: "橘色 ur" }
           ]},
-          { text: "ger", tts: "gur", highlights: [
+          { text: "er", tts: "ur", highlights: [
             { target: "er", cssClass: "color-er-ending", hintClass: "hl-er", note: "綠色 er，字尾 er 家族" }
           ]}
-        ]
+        ],
+        rootInfo: {
+          targetChunk: "burg", emoji: "🏰",
+          title: "🏰 burg（城堡城市）",
+          story: "hamburger 來自德國漢堡市 Hamburg，那裡的人發明了這種肉排！跟火腿 ham 沒關係喔！"
+        }
       },
       {
         id: "word_hotdog", word: "hot dog", layout: "compound",
@@ -408,7 +505,7 @@
         id: "word_juice", word: "juice", layout: "single",
         fullTts: "juice",
         chunks: [
-          { text: "juice", tts: "juice", highlights: [
+          { text: "juice", tts: "joos", highlights: [
             { target: "ui", cssClass: "color-grape-purple", hintClass: "hl-purple", note: "紫色 ui，像葡萄汁 🍇" },
             { target: "ce", cssClass: "style-silent-e", hintClass: "hl-silent", note: "灰色虛線：e 不發音，讓 c 唸 /s/" }
           ]}
@@ -438,6 +535,7 @@
     let currentPhase = 1;
     let canvasIds = [];
     let API_KEY = '';
+    let GEMINI_KEY = '';
     let usingDefaults = true;
 
     function speak(text, rate = 0.75) {
@@ -449,9 +547,139 @@
         synth.speak(u);
       });
     }
-
+    function speakChinese(text) {
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'zh-TW'; u.rate = 0.9;
+      synth.speak(u);
+    }
     function speakChunk(chunk, rate = 0.75) {
-      return speak(chunk.tts || chunk.text, rate);
+      let text = chunk.tts || chunk.text;
+      // Web Speech API 會把短字串當縮寫逐字拼讀
+      // 用逗號強制引擎產生「語氣停頓」，告訴它這是一個音節而非縮寫
+      if (text.length <= 3 && !text.endsWith('h') && !text.endsWith('r')) {
+        text = text + ',';
+      }
+      return speak(text, rate);
+    }
+
+    // ══════════════════════════════════════════
+    // 本地快取 (localStorage)
+    // ══════════════════════════════════════════
+    function getCache(word) {
+      try {
+        const c = JSON.parse(localStorage.getItem('phonics-ai-cache') || '{}');
+        return c[word.toLowerCase()] || null;
+      } catch(e) { return null; }
+    }
+    function setCache(word, data) {
+      try {
+        const c = JSON.parse(localStorage.getItem('phonics-ai-cache') || '{}');
+        c[word.toLowerCase()] = data;
+        localStorage.setItem('phonics-ai-cache', JSON.stringify(c));
+      } catch(e) {}
+    }
+
+    // ══════════════════════════════════════════
+    // Gemini API
+    // ══════════════════════════════════════════
+    async function fetchFromGemini(word) {
+      if (!GEMINI_KEY) return null;
+      const sysPrompt = `你是教 9 歲兒童英文的自然發音與字根老師。分析單字，回傳 JSON。
+
+【核心任務】
+1. chunks：切成自然發音音節，盡量保留字根完整性（如 hamburger → ham-burg-er）。單音節字不切。
+2. tts：餵給 TTS 語音引擎的發音字串。短音節必須轉成自然發音拼寫法，防止引擎逐字拼讀：
+   wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→ss
+3. rootInfo：找出最核心字根，寫 30 字以內的有趣故事，像對小學三年級學生說話。
+
+【Phonics 視覺標記規則 (highlights)】
+請仔細檢查每個 chunk 是否包含以下規則，有的話務必加入 highlights：
+
+[Silent E / 魔法 e] 字尾不發音的 e（如 ice, cake, bike, home）：
+  {"target":"e","cssClass":"style-silent-e","hintClass":"hl-silent","note":"灰色 e：安靜不發音"}
+  同時把被 magic e 影響的母音標記：
+  {"target":"i","cssClass":"style-magic-e","hintClass":"hl-magic","note":"Magic E 讓 i 唸自己的名字"}
+
+[Soft C/G] c 遇到 e/i/y 唸 /s/，g 遇到 e/i/y 唸 /dʒ/（如 juice 的 ce, magic 的 gi）：
+  {"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}
+
+[Vowel Teams / 母音團隊] ea, ee, ai, oa, oo 等：
+  {"target":"ea","cssClass":"color-cream-yellow","hintClass":"hl-cream","note":"黃色 ea：兩個母音一起，第一個講話"}
+
+[Bossy R] ar, er, ir, or, ur：
+  ur → {"target":"ur","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ur"}
+  er → {"target":"er","cssClass":"color-er-ending","hintClass":"hl-er","note":"綠色 er"}
+  ir → {"target":"ir","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ir（同 ur 音）"}
+
+[Digraphs] sh, ch, th：
+  {"target":"sh","cssClass":"color-water-blue","hintClass":"hl-water","note":"藍色 sh：噓～的聲音"}
+
+cssClass 可用：color-ur(橘)、color-er-ending(綠)、color-water-blue(藍)、color-grape-purple(紫)、color-cream-yellow(黃)、style-magic-e(粉紅)、style-silent-e(灰虛線)
+hintClass 可用：hl-ur、hl-er、hl-water、hl-purple、hl-cream、hl-magic、hl-silent
+layout 可用：single(單音節)、standard(多音節)、compound(複合字如 hot dog)
+
+JSON 範例：
+{"word":"juice","chunks":[{"text":"juice","tts":"joos","highlights":[{"target":"ui","cssClass":"color-grape-purple","hintClass":"hl-purple","note":"紫色 ui 像葡萄汁"},{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}]}],"layout":"single","fullTts":"juice","rootInfo":{"targetChunk":"juice","emoji":"🍇","title":"🍇 juice（果汁）","story":"juice 來自拉丁文 jus，就是「液體」的意思！所以果汁就是水果流出來的液體！"}}`;
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `分析：${word}` }] }],
+              systemInstruction: { parts: [{ text: sysPrompt }] },
+              generationConfig: { responseMimeType: 'application/json' }
+            })
+          }
+        );
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) return null;
+        return JSON.parse(text.replace(/```json|```/g, '').trim());
+      } catch(err) { console.error('Gemini error:', err); return null; }
+    }
+
+    // 智慧解析：快取 → Gemini → 靜態詞庫 → 基本
+    async function resolveWord(word) {
+      const cached = getCache(word);
+      if (cached) return cached;
+      if (GEMINI_KEY) {
+        const g = await fetchFromGemini(word);
+        if (g?.chunks?.length) { setCache(word, g); return g; }
+      }
+      const key = word.toLowerCase().replace(/[\s\-\.\']/g, '');
+      if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key]) {
+        const e = JSON.parse(JSON.stringify(PHONICS_DICT[key]));
+        setCache(word, e); return e;
+      }
+      if (word.includes('-')) {
+        const ch = word.split('-').map(s => s.trim()).filter(Boolean);
+        const e = { word: ch.join(''), layout: ch.length === 1 ? 'single' : 'standard',
+          fullTts: ch.join(''), chunks: ch.map(t => ({ text: t, tts: t, highlights: [] })) };
+        setCache(word, e); return e;
+      }
+      const e = { word, layout: 'single', fullTts: word, chunks: [{ text: word, tts: word, highlights: [] }] };
+      setCache(word, e); return e;
+    }
+
+    // ══════════════════════════════════════════
+    // 字根故事 Modal
+    // ══════════════════════════════════════════
+    let currentRootInfo = null;
+    function showRootModal(rootInfo) {
+      if (!rootInfo) return;
+      currentRootInfo = rootInfo;
+      document.getElementById('root-emoji').textContent = rootInfo.emoji || '✨';
+      document.getElementById('root-title').textContent = rootInfo.title || '';
+      document.getElementById('root-story').textContent = rootInfo.story || '';
+      document.getElementById('root-modal').classList.add('open');
+    }
+    function closeRootModal() {
+      document.getElementById('root-modal').classList.remove('open');
+      currentRootInfo = null;
+    }
+    function readRootStory() {
+      if (currentRootInfo?.story) speakChinese(currentRootInfo.story);
     }
 
     // ══════════════════════════════════════════
@@ -484,10 +712,9 @@
       document.getElementById('settings-modal').classList.add('open');
       const ta = document.getElementById('word-input');
       if (LESSONS.length > 0) {
-        // 顯示簡潔的單字名稱（不用 -）
         ta.value = LESSONS.map(l => l.word).join('\n');
       }
-      document.getElementById('api-key-input').value = API_KEY;
+      document.getElementById('gemini-key-input').value = GEMINI_KEY;
     }
     function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 
@@ -501,53 +728,45 @@
       loadCurrentWord();
     }
 
-    function parseWordLine(line) {
-      // 1. 先用原始輸入查詞庫（支援直接輸入 computer、ice cream 等）
-      const lookupKey = line.toLowerCase().replace(/[\s\-\.\']/g, '');
-      if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[lookupKey]) {
-        return JSON.parse(JSON.stringify(PHONICS_DICT[lookupKey]));
-      }
-
-      // 2. 如果有 - 分隔，嘗試合併後查詞庫
-      if (line.includes('-')) {
-        const chunks = line.split('-').map(s => s.trim()).filter(Boolean);
-        const word = chunks.join('');
-        const key2 = word.toLowerCase().replace(/[\s\.\']/g, '');
-        if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key2]) {
-          return JSON.parse(JSON.stringify(PHONICS_DICT[key2]));
-        }
-        // 詞庫沒有，用手動切割
-        return {
-          id: `word_${word}`, word: word,
-          layout: chunks.length === 1 ? 'single' : 'standard',
-          fullTts: word,
-          chunks: chunks.map(text => ({ text, tts: text, highlights: [] }))
-        };
-      }
-
-      // 3. 都沒有，當作單一音節
-      return {
-        id: `word_${line}`, word: line,
-        layout: 'single', fullTts: line,
-        chunks: [{ text: line, tts: line, highlights: [] }]
-      };
-    }
-
-    function saveSettings() {
+    async function saveSettings() {
       const raw = document.getElementById('word-input').value.trim();
-      const key = document.getElementById('api-key-input').value.trim();
+      const gKey = document.getElementById('gemini-key-input').value.trim();
       if (!raw) { alert('請輸入至少一個單字！'); return; }
 
-      API_KEY = key;
-      try { localStorage.setItem('phonics-api-key', key); } catch(e) {}
+      GEMINI_KEY = gKey;
+      try { localStorage.setItem('phonics-gemini-key', gKey); } catch(e) {}
 
+      closeSettings();
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-      LESSONS = lines.map(parseWordLine);
+
+      // 顯示載入進度
+      const overlay = document.getElementById('fetch-overlay');
+      const foWord = document.getElementById('fo-word');
+      const foFill = document.getElementById('fo-fill');
+      const foStatus = document.getElementById('fo-status');
+      overlay.classList.add('show');
+
+      LESSONS = [];
+      for (let i = 0; i < lines.length; i++) {
+        const word = lines[i];
+        foWord.textContent = word;
+        foFill.style.width = `${((i) / lines.length) * 100}%`;
+        const cached = getCache(word);
+        foStatus.textContent = cached ? '✅ 快取命中' : (GEMINI_KEY ? '🧠 AI 分析中...' : '📖 查詢詞庫...');
+
+        const lesson = await resolveWord(word);
+        LESSONS.push(lesson);
+      }
+
+      foFill.style.width = '100%';
+      foStatus.textContent = '✅ 全部完成！';
+      await new Promise(r => setTimeout(r, 400));
+      overlay.classList.remove('show');
+
       usingDefaults = false;
       try { localStorage.setItem('phonics-custom', JSON.stringify(LESSONS)); } catch(e) {}
 
       currentWordIdx = 0;
-      closeSettings();
       renderWordPills();
       loadCurrentWord();
     }
@@ -561,7 +780,12 @@
       LESSONS.forEach((l, i) => {
         const btn = document.createElement('button');
         btn.className = 'pill' + (i === currentWordIdx ? ' active' : '');
-        btn.textContent = l.word;
+        // Phase 3 手寫階段：隱藏拼寫，只顯示序號
+        if (currentPhase === 3) {
+          btn.textContent = `#${i + 1}`;
+        } else {
+          btn.textContent = l.word;
+        }
         btn.onclick = () => { currentWordIdx = i; renderWordPills(); loadCurrentWord(); };
         c.appendChild(btn);
       });
@@ -597,6 +821,7 @@
     function buildPhase1(lesson) {
       const container = document.getElementById('p1-display');
       container.innerHTML = '';
+      const rootChunk = lesson.rootInfo?.targetChunk;
 
       lesson.chunks.forEach((chunk, ci) => {
         if (ci > 0) {
@@ -610,6 +835,15 @@
         const group = document.createElement('span');
         group.className = 'chunk-group';
         group.id = `p1-c${ci}`;
+
+        // 字根 ✨ 標記
+        if (rootChunk && chunk.text.toLowerCase() === rootChunk.toLowerCase()) {
+          const badge = document.createElement('span');
+          badge.className = 'root-badge';
+          badge.textContent = '✨';
+          badge.onclick = (e) => { e.stopPropagation(); showRootModal(lesson.rootInfo); };
+          group.appendChild(badge);
+        }
 
         const letters = buildLetterMap(chunk.text, chunk.highlights);
         letters.forEach(lm => {
@@ -627,6 +861,7 @@
       const notes = lesson.chunks.flatMap(c =>
         c.highlights.filter(h => h.note).map(h => h.note)
       );
+      if (lesson.rootInfo?.title) notes.push('點 ✨ 看字根故事');
       noteDiv.innerHTML = notes.length
         ? '💡 ' + notes.join('　')
         : '按下按鈕，聽每個音節怎麼唸！';
@@ -747,6 +982,7 @@
       layout.innerHTML = '';
       layout.className = 'p3-layout layout-' + (lesson.layout || 'standard');
       canvasIds = [];
+      const rootChunk = lesson.rootInfo?.targetChunk;
 
       lesson.chunks.forEach((chunk, ci) => {
         const cvId = `cv-${ci}`;
@@ -755,18 +991,23 @@
         const col = document.createElement('div');
         col.className = 'syl-col';
 
-        // 建構帶顏色的底字
         const letterMap = buildLetterMap(chunk.text, chunk.highlights);
         const hintHTML = letterMap.map(lm => {
           const cls = ['hint-letter', ...lm.hintClasses].join(' ');
           return `<span class="${cls}">${lm.char}</span>`;
         }).join('');
 
+        const isRoot = rootChunk && chunk.text.toLowerCase() === rootChunk.toLowerCase();
+        const rootBadgeHTML = isRoot
+          ? `<span class="root-badge-box" onclick="showRootModal(LESSONS[currentWordIdx].rootInfo)">✨</span>`
+          : '';
+
         col.innerHTML = `
           <div class="syl-box">
             <div class="hint">${hintHTML}</div>
             <canvas id="${cvId}" data-target="${chunk.text}" data-idx="${ci}"></canvas>
             <span class="ck-icon">✅</span>
+            ${rootBadgeHTML}
           </div>
           <div class="syl-btns">
             <button class="icon-btn speak" onclick="speakChunkByIdx(${ci})">🔊</button>
@@ -795,6 +1036,7 @@
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById(`phase${num}`).classList.add('active');
       document.querySelectorAll('.nav-btn')[num - 1].classList.add('active');
+      renderWordPills(); // 切換時更新藥丸（Phase 3 隱藏拼寫）
       if (num === 3) { checkOrientation(); raf2(() => initAllCanvas()); }
       else document.getElementById('rotate-prompt').style.display = 'none';
     }
@@ -860,7 +1102,7 @@
       loader.classList.add('show');
       canvas.classList.add('checking');
       const target = canvas.dataset.target;
-      const result = await recognizeWithClaude(canvas, target);
+      const result = await recognizeWithGemini(canvas, target);
       canvas.classList.remove('checking');
       loader.classList.remove('show');
       if (result) {
@@ -878,7 +1120,14 @@
     }
     function eraseSingle(id) {
       const c = document.getElementById(id);
-      if (c && !c.classList.contains('locked')) clearCanvas(c);
+      if (!c) return;
+      // 允許清除已鎖定的畫布（重做）
+      c.classList.remove('locked', 'error', 'checking');
+      clearCanvas(c);
+      initCanvas(id); // 重新綁定事件
+      // 重新檢查完成狀態
+      document.getElementById('celebration').classList.remove('show');
+      document.getElementById('next-word-btn').classList.remove('show');
     }
     function isCanvasBlank(canvas) {
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -887,44 +1136,48 @@
       return count < (canvas.width * canvas.height * 0.005);
     }
 
-    async function recognizeWithClaude(canvas, target) {
+    async function recognizeWithGemini(canvas, target) {
+      if (!GEMINI_KEY) return !isCanvasBlank(canvas); // fallback
+
       const imageData = canvas.toDataURL('image/png').split(',')[1];
-      const systemPrompt = `You are a strict-but-kind spelling teacher checking a 9-year-old's handwriting.
-The child must write EXACTLY: "${target}"
+      const prompt = `You are a STRICT spelling teacher checking a 9-year-old child's handwriting.
+The child must write EXACTLY these letters: "${target}"
 
-CRITICAL — LETTER IDENTITY must be correct:
-- "bur" ≠ "ber" ≠ "bir". "ham" ≠ "hem". "ger" ≠ "gur".
-- Vowels matter: u ≠ e ≠ i ≠ a ≠ o. Wrong vowel = INCORRECT.
-- Consonants matter: b ≠ d, p ≠ q, m ≠ n. Wrong consonant = INCORRECT.
+STEP 1: Look at the image carefully. List EACH letter you see, one by one.
+STEP 2: Compare your reading with the target "${target}" letter by letter.
+STEP 3: Judge — are ALL letters correct?
 
-FORGIVE messy handwriting — wobbly, oversized, overlapping strokes are OK.
-REJECT wrong letters, missing letters, extra letters, or random scribbles.
-Respond ONLY: {"correct": true} or {"correct": false}`;
+STRICT RULES:
+- Letter identity is CRITICAL: "u" ≠ "e" ≠ "i" ≠ "a" ≠ "o"
+- "bur" written as "ber" = WRONG (different vowel)
+- "ham" written as "hem" = WRONG
+- Missing or extra letters = WRONG
+- Messy/wobbly handwriting is OK as long as the correct letters are identifiable
 
-      const headers = { 'Content-Type': 'application/json' };
-      if (API_KEY) {
-        headers['x-api-key'] = API_KEY;
-        headers['anthropic-version'] = '2023-06-01';
-        headers['anthropic-dangerous-direct-browser-access'] = 'true';
-      }
+Respond with JSON only:
+{"letters_seen": "what you read", "correct": true/false}`;
+
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 50, system: systemPrompt,
-            messages: [{ role: 'user', content: [
-              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageData } },
-              { type: 'text', text: `The child should have written exactly "${target}". Read each letter carefully — are the correct letters present? Pay special attention to vowels. JSON only.` }
-            ]}]
-          })
-        });
-        const data = await response.json();
-        const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-        return JSON.parse(text.replace(/```json|```/g, '').trim()).correct === true;
-      } catch (err) {
-        console.error('API error:', err);
-        return !isCanvasBlank(canvas);
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [
+                { inlineData: { mimeType: 'image/png', data: imageData } },
+                { text: prompt }
+              ]}]
+            })
+          }
+        );
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const clean = text.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(clean);
+        console.log(`OCR: target="${target}" seen="${parsed.letters_seen}" correct=${parsed.correct}`);
+        return parsed.correct === true;
+      } catch(err) {
+        console.error('Gemini OCR error:', err);
+        return !isCanvasBlank(canvas); // fallback
       }
     }
 
@@ -951,7 +1204,7 @@ Respond ONLY: {"correct": true} or {"correct": false}`;
     // 初始化
     // ══════════════════════════════════════════
     window.addEventListener('load', () => {
-      try { API_KEY = localStorage.getItem('phonics-api-key') || ''; } catch(e) {}
+      try { GEMINI_KEY = localStorage.getItem('phonics-gemini-key') || ''; } catch(e) {}
 
       // 嘗試讀取自訂字單
       try {
@@ -960,6 +1213,7 @@ Respond ONLY: {"correct": true} or {"correct": false}`;
           LESSONS = JSON.parse(custom);
           usingDefaults = false;
           renderWordPills(); loadCurrentWord();
+          if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
           return;
         }
       } catch(e) {}
