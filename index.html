@@ -1229,6 +1229,12 @@ JSON 範例：
           ? `<span class="root-badge-box" onclick="showRootModal(LESSONS[currentWordIdx].rootInfo)">✨</span>`
           : '';
 
+        const isLastChunk = ci === lesson.chunks.length - 1;
+        const checkOnclick = isLastChunk && lesson.chunks.length > 1
+          ? `verifyAll()` 
+          : `verifySingle('${cvId}')`;
+        const checkIcon = isLastChunk && lesson.chunks.length > 1 ? '✅' : '☑️';
+
         col.innerHTML = `
           <div class="syl-box">
             <div class="hint">${hintHTML}</div>
@@ -1238,7 +1244,7 @@ JSON 範例：
           </div>
           <div class="syl-btns">
             <button class="icon-btn speak" onclick="speakChunkByIdx(${ci})">🔊</button>
-            <button class="icon-btn check" onclick="verifySingle('${cvId}')">☑️</button>
+            <button class="icon-btn check" onclick="${checkOnclick}">${checkIcon}</button>
             <button class="icon-btn erase" onclick="eraseSingle('${cvId}')">🗑️</button>
           </div>`;
         layout.appendChild(col);
@@ -1349,6 +1355,56 @@ JSON 範例：
         clearCanvas(canvas);
       }
     }
+
+    // 依序檢查所有音節（點最後一個 ✅ 觸發）
+    async function verifyAll() {
+      const loader = document.getElementById('loader');
+      loader.classList.add('show');
+
+      for (let i = 0; i < canvasIds.length; i++) {
+        const cvId = canvasIds[i];
+        const canvas = document.getElementById(cvId);
+        if (!canvas) continue;
+        if (canvas.classList.contains('locked')) {
+          // 已通過的音節：唸出來然後繼續
+          await speakChunkByIdx(i);
+          await new Promise(r => setTimeout(r, 200));
+          continue;
+        }
+
+        // 空白檢查
+        if (isCanvasBlank(canvas)) {
+          loader.classList.remove('show');
+          canvas.classList.add('error');
+          setTimeout(() => canvas.classList.remove('error'), 500);
+          return; // 停止
+        }
+
+        // OCR 檢查
+        canvas.classList.add('checking');
+        const target = canvas.dataset.target;
+        const result = await recognizeWithGemini(canvas, target);
+        canvas.classList.remove('checking');
+
+        if (result) {
+          canvas.classList.add('locked');
+          await speakChunkByIdx(i);
+          await new Promise(r => setTimeout(r, 200));
+        } else {
+          // 寫錯 → 停在這裡
+          loader.classList.remove('show');
+          canvas.classList.add('error');
+          await speak('oops', 1.0);
+          await new Promise(r => setTimeout(r, 500));
+          canvas.classList.remove('error');
+          clearCanvas(canvas);
+          return; // 停止，不繼續檢查後面的
+        }
+      }
+
+      loader.classList.remove('show');
+      checkAllComplete();
+    }
     function eraseSingle(id) {
       const c = document.getElementById(id);
       if (!c) return;
@@ -1371,22 +1427,24 @@ JSON 範例：
       if (!GEMINI_KEY) return !isCanvasBlank(canvas); // fallback
 
       const imageData = canvas.toDataURL('image/png').split(',')[1];
-      const prompt = `You are a STRICT spelling teacher checking a 9-year-old child's handwriting.
-The child must write EXACTLY these letters: "${target}"
+      const prompt = `You are a RUTHLESSLY STRICT handwriting evaluator checking a child's writing.
+Target word: "${target}"
 
-STEP 1: Look at the image carefully. List EACH letter you see, one by one.
-STEP 2: Compare your reading with the target "${target}" letter by letter.
-STEP 3: Judge — are ALL letters correct?
+CRITICAL RULES TO AVOID HALLUCINATION:
+1. DO NOT auto-correct, guess, or fill in the blanks.
+2. Count the letters. If the target has ${target.length} letters, you MUST clearly see ${target.length} distinct letters.
+3. Missing letters = WRONG. (Example: If target is "milk" and you only see "mk", correct MUST be false).
+4. Extra letters = WRONG.
+5. Wrong letters = WRONG. Vowels matter: "bur" ≠ "ber", "ham" ≠ "hem".
+6. Messy/wobbly handwriting is OK, but every letter must be identifiable.
 
-STRICT RULES:
-- Letter identity is CRITICAL: "u" ≠ "e" ≠ "i" ≠ "a" ≠ "o"
-- "bur" written as "ber" = WRONG (different vowel)
-- "ham" written as "hem" = WRONG
-- Missing or extra letters = WRONG
-- Messy/wobbly handwriting is OK as long as the correct letters are identifiable
+STEP 1: Transcribe EXACTLY the letters you visibly see in the image. Do NOT assume or fill in gaps.
+STEP 2: Count your transcribed letters. Does the count match ${target.length}?
+STEP 3: Compare each letter to "${target}" one by one.
+STEP 4: If ANY letter is missing, extra, or incorrect, output correct: false.
 
 Respond with JSON only:
-{"letters_seen": "what you read", "correct": true/false}`;
+{"letters_seen": "exact letters you actually see", "count": number, "correct": true/false}`;
 
       try {
         const res = await fetch(
@@ -1404,7 +1462,7 @@ Respond with JSON only:
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const clean = text.replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(clean);
-        console.log(`OCR: target="${target}" seen="${parsed.letters_seen}" correct=${parsed.correct}`);
+        console.log(`OCR: target="${target}"(${target.length}) seen="${parsed.letters_seen}"(${parsed.count}) correct=${parsed.correct}`);
         return parsed.correct === true;
       } catch(err) {
         console.error('Gemini OCR error:', err);
