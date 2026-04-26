@@ -543,6 +543,10 @@
       return new Promise(resolve => {
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'en-US'; u.rate = rate;
+        // 優先使用 Google 聲音，避免 Microsoft 引擎把短音節當縮寫拼字母
+        const voices = synth.getVoices();
+        const gVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en'));
+        if (gVoice) u.voice = gVoice;
         u.onend = resolve; u.onerror = resolve;
         synth.speak(u);
       });
@@ -554,13 +558,7 @@
       synth.speak(u);
     }
     function speakChunk(chunk, rate = 0.75) {
-      let text = chunk.tts || chunk.text;
-      // Web Speech API 會把短字串當縮寫逐字拼讀
-      // 用逗號強制引擎產生「語氣停頓」，告訴它這是一個音節而非縮寫
-      if (text.length <= 3 && !text.endsWith('h') && !text.endsWith('r')) {
-        text = text + ',';
-      }
-      return speak(text, rate);
+      return speak(chunk.tts || chunk.text, rate);
     }
 
     // ══════════════════════════════════════════
@@ -1203,6 +1201,12 @@ Respond with JSON only:
     // ══════════════════════════════════════════
     // 初始化
     // ══════════════════════════════════════════
+    // 預載語音列表（某些瀏覽器需要等 voiceschanged 事件）
+    if (synth.onvoiceschanged !== undefined) {
+      synth.onvoiceschanged = () => synth.getVoices();
+    }
+    synth.getVoices(); // 首次呼叫觸發載入
+
     window.addEventListener('load', () => {
       try { GEMINI_KEY = localStorage.getItem('phonics-gemini-key') || ''; } catch(e) {}
 
