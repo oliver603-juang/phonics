@@ -287,6 +287,22 @@
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
     @keyframes pulse-border { 0%,100%{border-color:var(--color-ur)} 50%{border-color:var(--gold)} }
     @keyframes popin { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+    /* ═══ 使用者切換 ═══ */
+    .user-switcher {
+      display: flex; gap: 4px; flex-shrink: 0;
+    }
+    .user-btn {
+      padding: 5px 12px; border: 2px solid transparent; border-radius: 18px;
+      font-family: inherit; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; background: white; color: #bbb;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .user-btn.active-user {
+      border-color: var(--gold); color: #333; background: #FFFDE7;
+      box-shadow: 0 2px 10px rgba(255,215,0,0.3);
+    }
+
     /* ═══ 字根指示器 ═══ */
     .root-badge {
       display: inline-block; cursor: pointer;
@@ -365,7 +381,7 @@
   <!-- 設定 Modal -->
   <div class="modal-overlay" id="settings-modal">
     <div class="modal">
-      <h2>📝 今日字單設定</h2>
+      <h2 id="settings-title">📝 今日字單設定</h2>
       <div class="section">
         <label>單字列表（每行一個）</label>
         <textarea id="word-input" placeholder="hamburger&#10;computer&#10;water&#10;ice cream"></textarea>
@@ -394,6 +410,10 @@
 
   <!-- 頂部 -->
   <div class="top-bar">
+    <div class="user-switcher">
+      <button class="user-btn active-user" id="btn-iggy" onclick="switchUser('iggy')">🦊 Iggy</button>
+      <button class="user-btn" id="btn-yoyo" onclick="switchUser('yoyo')">🐸 Yoyo</button>
+    </div>
     <div class="word-pills" id="word-pills"></div>
     <button class="gear-btn" onclick="openSettings()">⚙️</button>
   </div>
@@ -534,19 +554,27 @@
     let currentWordIdx = 0;
     let currentPhase = 1;
     let canvasIds = [];
-    let API_KEY = '';
     let GEMINI_KEY = '';
     let usingDefaults = true;
+    let currentUser = 'iggy';
+    const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo' };
+    let preferredVoice = null; // 快取 Google 語音
+
+    function findBestVoice() {
+      const voices = synth.getVoices();
+      // 優先 Google US English → 其次任何 Google 英文 → 最後任何 en-US
+      preferredVoice = voices.find(v => v.name === 'Google US English') ||
+                       voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
+                       null;
+      if (preferredVoice) console.log('🔊 Voice:', preferredVoice.name);
+    }
 
     function speak(text, rate = 0.75) {
       synth.cancel();
       return new Promise(resolve => {
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'en-US'; u.rate = rate;
-        // 優先使用 Google 聲音，避免 Microsoft 引擎把短音節當縮寫拼字母
-        const voices = synth.getVoices();
-        const gVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en'));
-        if (gVoice) u.voice = gVoice;
+        if (preferredVoice) u.voice = preferredVoice;
         u.onend = resolve; u.onerror = resolve;
         synth.speak(u);
       });
@@ -706,8 +734,40 @@ JSON 範例：
     // ══════════════════════════════════════════
     // 設定 Modal
     // ══════════════════════════════════════════
+    function switchUser(userId) {
+      // 儲存當前進度
+      currentUser = userId;
+      try { localStorage.setItem('phonics-current-user', userId); } catch(e) {}
+
+      // 更新按鈕樣式
+      document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active-user'));
+      document.getElementById('btn-' + userId).classList.add('active-user');
+
+      // 載入該使用者的字單
+      loadUserLessons();
+      currentWordIdx = 0;
+      if (currentPhase === 3) switchPhase(1);
+      renderWordPills();
+      loadCurrentWord();
+    }
+
+    function loadUserLessons() {
+      try {
+        const saved = localStorage.getItem('phonics-' + currentUser + '-words');
+        if (saved) {
+          LESSONS = JSON.parse(saved);
+          usingDefaults = false;
+          return;
+        }
+      } catch(e) {}
+      LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
+      usingDefaults = true;
+    }
+
     function openSettings() {
       document.getElementById('settings-modal').classList.add('open');
+      document.getElementById('settings-title').textContent =
+        '📝 ' + USER_NAMES[currentUser] + ' 的字單設定';
       const ta = document.getElementById('word-input');
       if (LESSONS.length > 0) {
         ta.value = LESSONS.map(l => l.word).join('\n');
@@ -719,7 +779,7 @@ JSON 範例：
     function resetToDefault() {
       LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
       usingDefaults = true;
-      try { localStorage.removeItem('phonics-custom'); } catch(e) {}
+      try { localStorage.removeItem('phonics-' + currentUser + '-words'); } catch(e) {}
       closeSettings();
       currentWordIdx = 0;
       renderWordPills();
@@ -762,7 +822,7 @@ JSON 範例：
       overlay.classList.remove('show');
 
       usingDefaults = false;
-      try { localStorage.setItem('phonics-custom', JSON.stringify(LESSONS)); } catch(e) {}
+      try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
 
       currentWordIdx = 0;
       renderWordPills();
@@ -1201,30 +1261,21 @@ Respond with JSON only:
     // ══════════════════════════════════════════
     // 初始化
     // ══════════════════════════════════════════
-    // 預載語音列表（某些瀏覽器需要等 voiceschanged 事件）
-    if (synth.onvoiceschanged !== undefined) {
-      synth.onvoiceschanged = () => synth.getVoices();
-    }
-    synth.getVoices(); // 首次呼叫觸發載入
+    // 預載語音：Google 聲音是雲端的，需要等 voiceschanged 才出現
+    synth.addEventListener('voiceschanged', findBestVoice);
+    findBestVoice(); // 首次嘗試
 
     window.addEventListener('load', () => {
       try { GEMINI_KEY = localStorage.getItem('phonics-gemini-key') || ''; } catch(e) {}
 
-      // 嘗試讀取自訂字單
-      try {
-        const custom = localStorage.getItem('phonics-custom');
-        if (custom) {
-          LESSONS = JSON.parse(custom);
-          usingDefaults = false;
-          renderWordPills(); loadCurrentWord();
-          if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-          return;
-        }
-      } catch(e) {}
+      // 讀取上次使用的使用者
+      try { currentUser = localStorage.getItem('phonics-current-user') || 'iggy'; } catch(e) {}
+      document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active-user'));
+      const userBtn = document.getElementById('btn-' + currentUser);
+      if (userBtn) userBtn.classList.add('active-user');
 
-      // 使用預設教學字單
-      LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
-      usingDefaults = true;
+      // 載入該使用者的字單
+      loadUserLessons();
       renderWordPills();
       loadCurrentWord();
 
