@@ -368,6 +368,33 @@
       background: #E8F4FD; color: #4A90E2; font-family: inherit;
       font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-right: 8px;
     }
+    .root-modal .word-family {
+      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .root-modal .family-word {
+      padding: 6px 14px; background: #FFF3E0; border-radius: 16px;
+      font-size: 0.9rem; font-weight: 600; color: var(--color-ur);
+      cursor: pointer; transition: transform 0.1s;
+    }
+    .root-modal .family-word:active { transform: scale(0.95); }
+    .root-modal .family-label {
+      font-size: 0.75rem; color: #aaa; margin-bottom: 6px;
+    }
+    .root-modal .silly-sentence {
+      padding: 12px; background: #E3F2FD; border-radius: 14px;
+      margin-bottom: 6px; cursor: pointer; transition: transform 0.1s;
+    }
+    .root-modal .silly-sentence:active { transform: scale(0.98); }
+    .root-modal .silly-en {
+      font-size: 1rem; font-weight: 600; color: #1565C0; margin-bottom: 4px;
+    }
+    .root-modal .silly-tw {
+      font-size: 0.85rem; color: #666;
+    }
+    .root-modal .silly-hint {
+      font-size: 0.65rem; color: #aaa; margin-bottom: 10px;
+    }
 
     /* ═══ 載入字單 Overlay ═══ */
     .fetch-overlay {
@@ -472,7 +499,14 @@
       <div class="root-emoji" id="root-emoji">🏰</div>
       <div class="root-title" id="root-title"></div>
       <div class="root-story" id="root-story"></div>
-      <button class="root-listen" onclick="readRootStory()">🔊 唸給我聽</button>
+      <div class="family-label" id="family-label"></div>
+      <div class="word-family" id="word-family"></div>
+      <div class="silly-sentence" id="silly-box" onclick="playSillySentence()" style="display:none">
+        <div class="silly-en" id="silly-en"></div>
+        <div class="silly-tw" id="silly-tw"></div>
+      </div>
+      <div class="silly-hint" id="silly-hint"></div>
+      <button class="root-listen" onclick="readRootStory()">🔊 唸故事</button>
       <button class="root-close" onclick="closeRootModal()">知道了！</button>
     </div>
   </div>
@@ -506,7 +540,10 @@
         rootInfo: {
           targetChunk: "burg", emoji: "🏰",
           title: "🏰 burg（城堡城市）",
-          story: "hamburger 來自德國漢堡市 Hamburg，那裡的人發明了這種肉排！跟火腿 ham 沒關係喔！"
+          story: "hamburger 來自德國漢堡市 Hamburg，那裡的人發明了這種肉排！跟火腿 ham 沒關係喔！",
+          wordFamily: ["turtle", "nurse", "burn"],
+          sillySentence: "A turtle nurse eats a hamburger on fire!",
+          sillySentenceTw: "一隻烏龜護士在吃著火的漢堡！"
         }
       },
       {
@@ -527,7 +564,15 @@
           { text: "ter", tts: "tur", highlights: [
             { target: "er", cssClass: "color-er-ending", hintClass: "hl-er", note: "綠色 er，跟 hamburger 一樣！" }
           ]}
-        ]
+        ],
+        rootInfo: {
+          targetChunk: "ter", emoji: "💧",
+          title: "💧 er（字尾 er 家族）",
+          story: "很多單字結尾都有 er！water、teacher、computer 都是 er 家族的好朋友！",
+          wordFamily: ["teacher", "computer", "sister"],
+          sillySentence: "The teacher drinks water on the computer!",
+          sillySentenceTw: "老師在電腦上面喝水！"
+        }
       },
       {
         id: "word_milk", word: "milk", layout: "single",
@@ -550,7 +595,10 @@
         rootInfo: {
           targetChunk: "jui", emoji: "🍇",
           title: "🍇 juice（果汁）",
-          story: "juice 來自拉丁文 jus，就是「液體」的意思！果汁就是水果流出來的液體！"
+          story: "juice 來自拉丁文 jus，就是「液體」的意思！果汁就是水果流出來的液體！",
+          wordFamily: ["fruit", "suit"],
+          sillySentence: "A pig in a suit drinks juice on the roof!",
+          sillySentenceTw: "一隻穿西裝的豬在屋頂上喝果汁！"
         }
       },
       {
@@ -667,37 +715,27 @@
 【核心任務】
 1. chunks：切成自然發音音節，盡量保留字根完整性（如 hamburger → ham-burg-er）。單音節字不切。
 2. tts：餵給 TTS 語音引擎的發音字串。短音節必須轉成自然發音拼寫法，防止引擎逐字拼讀：
-   wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→ss
-3. rootInfo：找出最核心字根，寫 30 字以內的有趣故事，像對小學三年級學生說話。
+   wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→suh
+3. rootInfo：找出最核心字根或最難的發音規則，生成以下擴充教學內容：
+   - story：30 字以內的有趣字根或發音故事，像對小學三年級學生說話。
+   - wordFamily：陣列格式，2~3 個與該 chunk 擁有「相同發音規則」且適合國小生程度的簡單單字。
+   - sillySentence：用目標單字造一句 10 個字以內、情境誇張搞笑有畫面的英文句子（強烈建議把 wordFamily 裡的單字也編進去，產生荒謬感）。
+   - sillySentenceTw：該搞笑句子的繁體中文口語化翻譯。
 
 【Phonics 視覺標記規則 (highlights)】
 請仔細檢查每個 chunk 是否包含以下規則，有的話務必加入 highlights：
-
-[Silent E / 魔法 e] 字尾不發音的 e（如 ice, cake, bike, home）：
-  {"target":"e","cssClass":"style-silent-e","hintClass":"hl-silent","note":"灰色 e：安靜不發音"}
-  同時把被 magic e 影響的母音標記：
-  {"target":"i","cssClass":"style-magic-e","hintClass":"hl-magic","note":"Magic E 讓 i 唸自己的名字"}
-
-[Soft C/G] c 遇到 e/i/y 唸 /s/，g 遇到 e/i/y 唸 /dʒ/（如 juice 的 ce, magic 的 gi）：
-  {"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}
-
-[Vowel Teams / 母音團隊] ea, ee, ai, oa, oo 等：
-  {"target":"ea","cssClass":"color-cream-yellow","hintClass":"hl-cream","note":"黃色 ea：兩個母音一起，第一個講話"}
-
-[Bossy R] ar, er, ir, or, ur：
-  ur → {"target":"ur","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ur"}
-  er → {"target":"er","cssClass":"color-er-ending","hintClass":"hl-er","note":"綠色 er"}
-  ir → {"target":"ir","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ir（同 ur 音）"}
-
-[Digraphs] sh, ch, th：
-  {"target":"sh","cssClass":"color-water-blue","hintClass":"hl-water","note":"藍色 sh：噓～的聲音"}
+[Silent E / 魔法 e] 字尾不發音的 e：{"target":"e","cssClass":"style-silent-e","hintClass":"hl-silent","note":"灰色 e：安靜不發音"}
+[Soft C/G] c 遇到 e/i/y 唸 /s/：{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}
+[Vowel Teams] ea, ee, ai, oa, oo：{"target":"ea","cssClass":"color-cream-yellow","hintClass":"hl-cream","note":"黃色 ea：兩個母音一起，第一個講話"}
+[Bossy R] ur/ir → color-ur(橘), er → color-er-ending(綠)
+[Digraphs] sh, ch, th → color-water-blue(藍)
 
 cssClass 可用：color-ur(橘)、color-er-ending(綠)、color-water-blue(藍)、color-grape-purple(紫)、color-cream-yellow(黃)、style-magic-e(粉紅)、style-silent-e(灰虛線)
 hintClass 可用：hl-ur、hl-er、hl-water、hl-purple、hl-cream、hl-magic、hl-silent
 layout 可用：single(單音節)、standard(多音節)、compound(複合字如 hot dog)
 
 JSON 範例：
-{"word":"juice","chunks":[{"text":"juice","tts":"joos","highlights":[{"target":"ui","cssClass":"color-grape-purple","hintClass":"hl-purple","note":"紫色 ui 像葡萄汁"},{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}]}],"layout":"single","fullTts":"juice","rootInfo":{"targetChunk":"juice","emoji":"🍇","title":"🍇 juice（果汁）","story":"juice 來自拉丁文 jus，就是「液體」的意思！所以果汁就是水果流出來的液體！"}}`;
+{"word":"hamburger","chunks":[{"text":"ham","tts":"ham","highlights":[]},{"text":"burg","tts":"burr","highlights":[{"target":"ur","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ur"}]},{"text":"er","tts":"ur","highlights":[{"target":"er","cssClass":"color-er-ending","hintClass":"hl-er","note":"綠色 er"}]}],"layout":"standard","fullTts":"hamburger","rootInfo":{"targetChunk":"burg","emoji":"🏰","title":"🏰 burg（城堡城市）","story":"hamburger 來自德國漢堡市，跟火腿(ham)沒有關係喔！","wordFamily":["turtle","nurse"],"sillySentence":"A turtle eats a hamburger in the bathtub!","sillySentenceTw":"一隻烏龜在浴缸裡吃漢堡！"}}`;
       try {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
@@ -768,6 +806,37 @@ JSON 範例：
       document.getElementById('root-emoji').textContent = rootInfo.emoji || '✨';
       document.getElementById('root-title').textContent = rootInfo.title || '';
       document.getElementById('root-story').textContent = rootInfo.story || '';
+
+      // 發音家族
+      const familyContainer = document.getElementById('word-family');
+      const familyLabel = document.getElementById('family-label');
+      familyContainer.innerHTML = '';
+      if (rootInfo.wordFamily?.length) {
+        familyLabel.textContent = '👨‍👩‍👧‍👦 發音家族（點擊聽發音）';
+        rootInfo.wordFamily.forEach(w => {
+          const btn = document.createElement('span');
+          btn.className = 'family-word';
+          btn.textContent = w;
+          btn.onclick = (e) => { e.stopPropagation(); speak(w, 0.8); };
+          familyContainer.appendChild(btn);
+        });
+      } else {
+        familyLabel.textContent = '';
+      }
+
+      // 荒謬情境句
+      const sillyBox = document.getElementById('silly-box');
+      const sillyHint = document.getElementById('silly-hint');
+      if (rootInfo.sillySentence) {
+        document.getElementById('silly-en').textContent = '🤪 ' + rootInfo.sillySentence;
+        document.getElementById('silly-tw').textContent = rootInfo.sillySentenceTw || '';
+        sillyBox.style.display = 'block';
+        sillyHint.textContent = '👆 點擊句子聽英文朗讀';
+      } else {
+        sillyBox.style.display = 'none';
+        sillyHint.textContent = '';
+      }
+
       document.getElementById('root-modal').classList.add('open');
     }
     function closeRootModal() {
@@ -776,6 +845,9 @@ JSON 範例：
     }
     function readRootStory() {
       if (currentRootInfo?.story) speakChinese(currentRootInfo.story);
+    }
+    function playSillySentence() {
+      if (currentRootInfo?.sillySentence) speak(currentRootInfo.sillySentence, 0.8);
     }
 
     // ══════════════════════════════════════════
