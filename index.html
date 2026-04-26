@@ -1427,24 +1427,24 @@ JSON 範例：
       if (!GEMINI_KEY) return !isCanvasBlank(canvas); // fallback
 
       const imageData = canvas.toDataURL('image/png').split(',')[1];
-      const prompt = `You are a RUTHLESSLY STRICT handwriting evaluator checking a child's writing.
-Target word: "${target}"
 
-CRITICAL RULES TO AVOID HALLUCINATION:
-1. DO NOT auto-correct, guess, or fill in the blanks.
-2. Count the letters. If the target has ${target.length} letters, you MUST clearly see ${target.length} distinct letters.
-3. Missing letters = WRONG. (Example: If target is "milk" and you only see "mk", correct MUST be false).
-4. Extra letters = WRONG.
-5. Wrong letters = WRONG. Vowels matter: "bur" ≠ "ber", "ham" ≠ "hem".
-6. Messy/wobbly handwriting is OK, but every letter must be identifiable.
+      // Step 1: 盲讀 — 不告訴 AI 答案，只問「你看到什麼」
+      const prompt = `You are a handwriting reader. A child wrote some English letters on this canvas.
 
-STEP 1: Transcribe EXACTLY the letters you visibly see in the image. Do NOT assume or fill in gaps.
-STEP 2: Count your transcribed letters. Does the count match ${target.length}?
-STEP 3: Compare each letter to "${target}" one by one.
-STEP 4: If ANY letter is missing, extra, or incorrect, output correct: false.
+YOUR ONLY JOB: Read and transcribe EXACTLY the letters you see. Nothing else.
 
-Respond with JSON only:
-{"letters_seen": "exact letters you actually see", "count": number, "correct": true/false}`;
+RULES:
+- Report ONLY the lowercase letters you can clearly identify.
+- Do NOT guess, assume, or fill in blanks.
+- If a stroke is unclear, skip it.
+- Do NOT add letters that aren't there.
+- Respond with JSON only: {"letters": "the letters you see"}
+
+Examples:
+- If you see "h a m" written → {"letters": "ham"}
+- If you see "m k" with nothing in between → {"letters": "mk"}
+- If you see "b e r" → {"letters": "ber"}
+- If you see scribbles with no clear letters → {"letters": ""}`;
 
       try {
         const res = await fetch(
@@ -1462,8 +1462,14 @@ Respond with JSON only:
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const clean = text.replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(clean);
-        console.log(`OCR: target="${target}"(${target.length}) seen="${parsed.letters_seen}"(${parsed.count}) correct=${parsed.correct}`);
-        return parsed.correct === true;
+        const seen = (parsed.letters || '').toLowerCase().trim();
+
+        // Step 2: JS 比對 — 程式碼做精確字串比較
+        const expected = target.toLowerCase().trim();
+        const isCorrect = seen === expected;
+
+        console.log(`OCR: 看到="${seen}" 正確答案="${expected}" → ${isCorrect ? '✅' : '❌'}`);
+        return isCorrect;
       } catch(err) {
         console.error('Gemini OCR error:', err);
         return !isCanvasBlank(canvas); // fallback
