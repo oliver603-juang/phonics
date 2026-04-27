@@ -1,12 +1,17 @@
-const CACHE_NAME = 'phonics-v3';
+const CACHE_NAME = 'phonics-v4';
 const ASSETS = [
   './',
   './index.html',
+  './chinese-writing.html',
   './phonics-dict.js',
   './manifest.json',
+  './manifest-cw.json',
   './icon-192.png',
   './icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@700;800;900&display=swap'
+  './icon-cw-192.png',
+  './icon-cw-512.png',
+  'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@700;800;900&display=swap',
+  'https://fonts.googleapis.com/css2?family=cwTeXYen&family=Zen+Kurenaido&display=swap'
 ];
 
 // Install: cache core assets
@@ -27,12 +32,15 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API calls, cache-first for assets
+// Fetch: network-first for API/Firebase, cache-first for assets
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
   // API calls → always go to network (don't cache)
-  if (url.hostname === 'api.anthropic.com') {
+  if (url.hostname === 'api.anthropic.com' ||
+      url.hostname === 'generativelanguage.googleapis.com' ||
+      url.hostname === 'firestore.googleapis.com' ||
+      url.hostname.includes('firebase')) {
     return;
   }
 
