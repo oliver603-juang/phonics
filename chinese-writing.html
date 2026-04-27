@@ -5,7 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>恐龍書法家</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=cwTeXYen&family=Zen+Kurenaido&family=Noto+Serif+TC:wght@700;900&family=Ma+Shan+Zheng&display=swap');
+        /* UI 字體仍從 Google Fonts 載入 */
+        @import url('https://fonts.googleapis.com/css2?family=cwTeXYen&family=Zen+Kurenaido&display=swap');
+
+        /* 描紅字體：jsDelivr CDN 線上載入 */
+        @font-face {
+            font-family: 'Iansui';
+            src: url('https://cdn.jsdelivr.net/gh/ButTaiwan/iansui@main/fonts/ttf/Iansui-Regular.ttf') format('truetype');
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'JasonHandwriting';
+            src: url('https://cdn.jsdelivr.net/gh/jasonhandwriting/JasonHandwriting@master/JasonHandwriting1.ttf') format('truetype');
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'ChenYuluoyan';
+            src: url('https://cdn.jsdelivr.net/gh/Chenyu-otf/chenyuluoyan_thin@main/ChenYuluoyan-Thin.ttf') format('truetype');
+            font-display: swap;
+        }
         :root { --bg-color: #FFF3E0; --primary: #FF6B6B; --secondary: #4ECDC4; --text: #2d3436; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -53,6 +71,7 @@
         }
         .font-btn.active { background: var(--secondary); color: white; }
         .font-btn:first-child { border-right: 1px solid #ddd; }
+        .font-btn:nth-child(2) { border-right: 1px solid #ddd; }
 
         /* ═══ 設定 Modal ═══ */
         .modal-overlay {
@@ -210,6 +229,13 @@
 </head>
 <body>
 
+<!-- 隱藏的字體預載器：強制瀏覽器開始下載所有字體 -->
+<div id="font-preloader" style="position:absolute;left:-9999px;top:-9999px;font-size:1px;visibility:hidden;" aria-hidden="true">
+    <span style="font-family:'Iansui',serif;">字</span>
+    <span style="font-family:'JasonHandwriting',cursive;">字</span>
+    <span style="font-family:'ChenYuluoyan',cursive;">字</span>
+</div>
+
 <!-- ═══ 設定 Modal ═══ -->
 <div class="modal-overlay" id="settings-modal">
     <div class="modal">
@@ -243,8 +269,9 @@
     </div>
     <div class="top-info">
         <div class="font-toggle">
-            <button class="font-btn active" id="fbtn-kai" onclick="setFont('kai')">正楷</button>
-            <button class="font-btn" id="fbtn-xing" onclick="setFont('xing')">行書</button>
+            <button class="font-btn active" id="fbtn-kai" onclick="setFont('kai')">芫荽</button>
+            <button class="font-btn" id="fbtn-jason" onclick="setFont('jason')">清松</button>
+            <button class="font-btn" id="fbtn-yan" onclick="setFont('yan')">落雁</button>
         </div>
         <div class="score-badge" id="score-badge">0 分</div>
         <div class="progress-mini"><div class="progress-mini-fill" id="progress-fill"></div></div>
@@ -280,12 +307,13 @@
     let levels = []; // [{char, hint}]
     let currentLevel = 0;
     let totalScore = 0;
-    let currentFont = 'kai'; // 'kai' = 正楷, 'xing' = 行書
+    let currentFont = 'kai'; // 'kai' = 芫荽, 'jason' = 清松, 'yan' = 落雁
     const CANVAS_SIZE = 320;
 
     const FONT_MAP = {
-        kai:  "'Noto Serif TC', '楷體', 'KaiTi', 'DFKai-SB', serif",
-        xing: "'Ma Shan Zheng', '行書', cursive"
+        kai:   "'Iansui', serif",
+        jason: "'JasonHandwriting', cursive",
+        yan:   "'ChenYuluoyan', cursive"
     };
 
     function setFont(font) {
@@ -293,7 +321,16 @@
         localStorage.setItem('cw-font', font);
         document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('fbtn-' + font).classList.add('active');
-        loadLevel(); // 重新渲染描紅底字
+
+        // 取出純字體名（第一個 font-family）
+        const fontFamily = FONT_MAP[font].split(',')[0].trim().replace(/'/g, '');
+
+        // 先確保字體已載入，再重新渲染描紅
+        document.fonts.load(`240px "${fontFamily}"`, '字').then(() => {
+            loadLevel();
+        }).catch(() => {
+            loadLevel(); // fallback
+        });
     }
 
     const DEFAULT_CHARS = {
@@ -422,13 +459,29 @@
             ? lvl.hint.replace(lvl.char, `<span class="highlight">${lvl.char}</span>`)
             : `寫出：<span class="highlight">${lvl.char}</span>`;
         rewriteCanvas();
-        // 描紅底字
+        renderCharPills();
+
+        // 等字體載入完成再畫描紅底字
+        const fontFamily = FONT_MAP[currentFont].split(',')[0].trim().replace(/'/g, '');
+        const fontSpec = `240px "${fontFamily}"`;
+
+        // 用目標字觸發字體載入（確保該字的 glyph 被下載）
+        document.fonts.load(fontSpec, lvl.char).then(() => {
+            drawHint(lvl.char, `240px ${FONT_MAP[currentFont]}`);
+        }).catch(() => {
+            // 字體載入失敗，等 document.fonts.ready 再試一次
+            document.fonts.ready.then(() => {
+                drawHint(lvl.char, `240px ${FONT_MAP[currentFont]}`);
+            });
+        });
+    }
+
+    function drawHint(char, fontSpec) {
         hCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-        hCtx.font = `240px ${FONT_MAP[currentFont]}`;
+        hCtx.font = fontSpec;
         hCtx.textAlign = 'center'; hCtx.textBaseline = 'middle';
         hCtx.fillStyle = '#e0e0e0';
-        hCtx.fillText(lvl.char, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
-        renderCharPills();
+        hCtx.fillText(char, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
     }
 
     // 觸控/滑鼠繪圖
@@ -615,7 +668,10 @@
         document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('fbtn-' + currentFont).classList.add('active');
         loadUserData();
-        initGame();
+        // 等基本字體載入後再開始遊戲
+        document.fonts.ready.then(() => {
+            initGame();
+        });
         if (!GEMINI_KEY) setTimeout(showNoKeyWarning, 1000);
     };
 </script>
