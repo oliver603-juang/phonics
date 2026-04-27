@@ -206,6 +206,33 @@
             font-size: 0.9rem; font-weight: 600; cursor: pointer;
         }
 
+        /* ═══ 筆刷工具列（嵌入畫布邊框）═══ */
+        .canvas-area {
+            position: relative; display: flex; align-items: stretch; gap: 0;
+        }
+        .side-palette {
+            display: flex; flex-direction: column; gap: 4px; padding: 6px 4px;
+            background: rgba(78,205,196,0.15); border-radius: 15px 0 0 15px;
+            align-items: center; justify-content: center;
+        }
+        .side-palette.right { border-radius: 0 15px 15px 0; }
+        .color-swatch {
+            width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.8);
+            cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            transition: transform 0.15s;
+        }
+        .color-swatch.active { transform: scale(1.25); border-color: #333; box-shadow: 0 0 0 2px rgba(78,205,196,0.5); }
+        .bottom-tools {
+            display: flex; gap: 6px; padding: 4px 8px; justify-content: center; align-items: center;
+            background: rgba(78,205,196,0.15); border-radius: 0 0 15px 15px;
+            width: 320px; margin: 0 auto;
+        }
+        .thick-btn {
+            background: #bbb; border-radius: 50%; cursor: pointer; border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .thick-btn.active { background: var(--text); border-color: var(--secondary); box-shadow: 0 0 0 2px rgba(78,205,196,0.4); }
+
         /* 十字線 */
         .cross-h { position:absolute; width:100%; height:1px; top:50%; background:rgba(255,0,0,0.3); border-top:1px dashed red; z-index:0; }
         .cross-v { position:absolute; height:100%; width:1px; left:50%; background:rgba(255,0,0,0.3); border-left:1px dashed red; z-index:0; }
@@ -295,14 +322,21 @@
 <div id="game-screen">
     <div class="char-pills" id="char-pills"></div>
     <div class="question-area" id="question-text">載入中...</div>
-    <div class="canvas-wrapper" id="game-wrapper">
-        <canvas id="hint-canvas"></canvas>
-        <canvas id="draw-canvas"></canvas>
-        <div class="cross-h"></div>
-        <div class="cross-v"></div>
-        <div class="grading-overlay hidden" id="grading-overlay">
-            <div class="spinner"></div><div>AI 老師檢查中...</div>
+    <div class="canvas-area">
+        <div class="side-palette" id="palette-left"></div>
+        <div style="display:flex; flex-direction:column;">
+            <div class="canvas-wrapper" id="game-wrapper">
+                <canvas id="hint-canvas"></canvas>
+                <canvas id="draw-canvas"></canvas>
+                <div class="cross-h"></div>
+                <div class="cross-v"></div>
+                <div class="grading-overlay hidden" id="grading-overlay">
+                    <div class="spinner"></div><div>AI 老師檢查中...</div>
+                </div>
+            </div>
+            <div class="bottom-tools" id="thickness-bar"></div>
         </div>
+        <div class="side-palette right" id="palette-right"></div>
     </div>
     <div class="controls">
         <button class="btn-rewrite" onclick="rewriteCanvas()">❌ 重寫</button>
@@ -455,13 +489,77 @@
     const dCtx = drawCanvas.getContext('2d');
     let isDrawing = false, hasWritten = false;
 
+    // 莫蘭迪護眼色系 16 色（左 8 + 右 8）
+    const BRUSH_COLORS = [
+        '#2d3436', '#636e72', '#b2bec3', '#6c5ce7',
+        '#a29bfe', '#0984e3', '#74b9ff', '#00b894',
+        '#55efc4', '#fdcb6e', '#e17055', '#d63031',
+        '#e84393', '#fd79a8', '#00cec9', '#81ecec'
+    ];
+    // 8 種粗細（2~30px）
+    const BRUSH_WIDTHS = [2, 4, 6, 8, 12, 16, 22, 30];
+    let brushColor = '#2d3436';
+    let brushWidth = 6;
+
+    function initDrawingTools() {
+        const left = document.getElementById('palette-left');
+        const right = document.getElementById('palette-right');
+        const bottom = document.getElementById('thickness-bar');
+        left.innerHTML = ''; right.innerHTML = ''; bottom.innerHTML = '';
+
+        // 左側 8 色
+        BRUSH_COLORS.slice(0, 8).forEach((color, i) => {
+            left.appendChild(createSwatch(color, i === 0));
+        });
+        // 右側 8 色
+        BRUSH_COLORS.slice(8).forEach(color => {
+            right.appendChild(createSwatch(color, false));
+        });
+        // 底部 8 種粗細
+        BRUSH_WIDTHS.forEach((w, i) => {
+            const btn = document.createElement('div');
+            btn.className = 'thick-btn' + (w === brushWidth ? ' active' : '');
+            const size = 8 + i * 3; // 8px ~ 29px 視覺大小
+            btn.style.width = size + 'px';
+            btn.style.height = size + 'px';
+            btn.onclick = () => {
+                document.querySelectorAll('.thick-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                brushWidth = w;
+                dCtx.lineWidth = w;
+            };
+            bottom.appendChild(btn);
+        });
+    }
+
+    function createSwatch(color, isActive) {
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch' + (isActive ? ' active' : '');
+        swatch.style.background = color;
+        swatch.onclick = () => {
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+            brushColor = color;
+            dCtx.strokeStyle = color;
+        };
+        return swatch;
+    }
+
+    function setThickness(width, btn) {
+        brushWidth = width;
+        dCtx.lineWidth = width;
+        document.querySelectorAll('.thick-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
     function initGame() {
         hintCanvas.width = CANVAS_SIZE; hintCanvas.height = CANVAS_SIZE;
         drawCanvas.width = CANVAS_SIZE; drawCanvas.height = CANVAS_SIZE;
         dCtx.lineCap = 'round'; dCtx.lineJoin = 'round';
-        dCtx.lineWidth = 10; dCtx.strokeStyle = '#2d3436';
+        dCtx.lineWidth = brushWidth; dCtx.strokeStyle = brushColor;
         currentLevel = 0; totalScore = 0;
         updateScore();
+        initDrawingTools();
         renderCharPills();
         loadLevel();
     }
