@@ -1,1483 +1,124 @@
+Skip to content
+oliver603-juang
+phonics
+Repository navigation
+Code
+Issues
+Pull requests
+Agents
+Actions
+Projects
+Wiki
+Security and quality
+1
+ (1)
+More
+ Repository items
+Editing index.html in phonics
+Breadcrumbs
+phonics
+/
+in
+main
+Cancel changes
+Commit changes...
+Edit
+Preview
+Indent mode
+Spaces
+Tabs
+Indent size
+2
+4
+8
+Line wrap mode
+No wrap
+Soft wrap
+Editing index.html file contents
+1481
+1482
+1483
+1484
+1485
+1486
+1487
+1488
+1489
+1490
+1491
+1492
+1493
+1494
+1495
+1496
+1497
+1498
+1499
+1500
+1501
+1502
+1503
+1504
+1505
+1506
+1507
+1508
+1509
+1510
+1511
+1512
+1513
+1514
+1515
+1516
+1517
+1518
+1519
+1520
+1521
+1522
+1523
+1524
+1525
+1526
+1527
+1528
+1529
+1530
+1531
+1532
+1533
+1534
+1535
+1536
+1537
+1538
+1539
+1540
+1541
+1542
+1543
+1544
+1545
+1546
+1547
+1548
+1549
+1550
+1551
+1552
+1553
+1554
+1555
+1556
+1557
+1558
+1559
+1560
+1561
+1562
+1563
 <!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#FFD700">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Phonics">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <title>Phonics 拼音練習</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --gold: #FFD700; --bg: #FFF8F0;
-      --shadow: 0 6px 24px rgba(0,0,0,0.08);
-      /* 語音視覺錨點色系 */
-      --color-ur: #FFA500;
-      --color-er: #32CD32;
-      --color-water-blue: #4FC3F7;
-      --color-grape-purple: #9B59B6;
-      --color-cream-yellow: #F9C74F;
-      --color-magic-e: #E91E63;
-      --color-default-1: #FF6347;
-      --color-default-2: #FFA500;
-      --color-default-3: #32CD32;
-      --color-default-4: #4A90E2;
-      --color-default-5: #9B59B6;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Fredoka', 'Comic Sans MS', sans-serif;
-      background: var(--bg); min-height: 100dvh;
-      display: flex; flex-direction: column; align-items: center;
-      user-select: none; touch-action: none; overflow-x: hidden;
-    }
-
-    /* ═══ 頂部 ═══ */
-    .top-bar {
-      width: 100%; display: flex; align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px 2px; gap: 6px; flex-shrink: 0;
-    }
-    .word-pills {
-      display: flex; gap: 5px; overflow-x: auto; flex: 1; padding: 3px 0;
-      scrollbar-width: none;
-    }
-    .word-pills::-webkit-scrollbar { display: none; }
-    .pill {
-      padding: 5px 12px; border: none; border-radius: 18px;
-      font-family: inherit; font-size: 0.78rem; font-weight: 600;
-      cursor: pointer; white-space: nowrap;
-      background: white; color: #aaa;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      transition: all 0.2s; flex-shrink: 0;
-    }
-    .pill.active { background: var(--gold); color: #333; }
-    .pill.done { background: var(--color-er); color: white; }
-    .gear-btn {
-      width: 36px; height: 36px; border: none; border-radius: 50%;
-      background: white; font-size: 1.1rem; cursor: pointer;
-      box-shadow: var(--shadow); flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    /* ═══ Phase NAV ═══ */
-    .nav {
-      display: flex; gap: 4px; padding: 4px;
-      background: white; border-radius: 28px;
-      box-shadow: var(--shadow); margin: 3px 0;
-    }
-    .nav-btn {
-      padding: 6px 13px; border: none; border-radius: 20px;
-      font-family: inherit; font-size: 0.76rem; font-weight: 600;
-      cursor: pointer; background: transparent; color: #999;
-      transition: all 0.2s; white-space: nowrap;
-    }
-    .nav-btn.active { background: var(--gold); color: #333; }
-
-    /* ═══ Phase 容器 ═══ */
-    .phase {
-      display: none; width: 100%; max-width: 560px;
-      padding: 8px 10px; flex-direction: column;
-      align-items: center; animation: fadeUp 0.25s ease; flex: 1;
-    }
-    .phase.active { display: flex; }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ═══ Phase 1：聽與看 ═══ */
-    .word-display {
-      font-family: 'Nunito', sans-serif;
-      font-size: clamp(2.8rem, 11vw, 5rem);
-      font-weight: 900; letter-spacing: 1px;
-      margin: 20px 0 12px;
-      display: flex; align-items: baseline; gap: 2px;
-      flex-wrap: wrap; justify-content: center;
-      line-height: 1.3;
-    }
-    .chunk-group {
-      display: inline-flex; align-items: baseline;
-      transition: all 0.25s ease;
-    }
-    .chunk-group.active-chunk { transform: scale(1.18); }
-    .chunk-letter {
-      display: inline-block; color: #ddd;
-      transition: color 0.3s, text-shadow 0.3s;
-    }
-    .chunk-separator {
-      color: #e0e0e0; font-weight: 400; margin: 0 3px;
-      font-size: 0.7em;
-    }
-    .compound-gap { margin: 0 10px; }
-
-    /* 視覺錨點顏色 class */
-    .color-ur { color: var(--color-ur) !important; }
-    .color-er-ending { color: var(--color-er) !important; }
-    .color-water-blue { color: var(--color-water-blue) !important; }
-    .color-grape-purple { color: var(--color-grape-purple) !important; }
-    .color-cream-yellow { color: var(--color-cream-yellow) !important; }
-    .style-magic-e { color: var(--color-magic-e) !important; }
-    .style-silent-e {
-      color: #bbb !important;
-      text-decoration: underline dashed #ccc;
-      text-underline-offset: 4px;
-    }
-
-    /* Phase 1 教學提示卡 */
-    .phonics-note {
-      margin-top: 8px; padding: 8px 14px;
-      background: white; border-radius: 14px;
-      font-size: 0.75rem; color: #777;
-      text-align: center; max-width: 360px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      line-height: 1.5;
-    }
-    .phonics-note .hl { font-weight: 700; }
-
-    .speech-result {
-      margin-top: 16px; font-size: 1.05rem; color: #888;
-      min-height: 30px; text-align: center; line-height: 1.5;
-    }
-
-    /* ═══ 共用按鈕 ═══ */
-    .btn {
-      font-family: inherit; font-weight: 600; font-size: 1.05rem;
-      padding: 12px 26px; border: none; border-radius: 36px;
-      cursor: pointer; transition: transform 0.1s;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .btn:active { transform: scale(0.95); }
-    .btn-primary { background: var(--gold); color: #333; }
-
-    /* ═══ Phase 3 ═══ */
-    #rotate-prompt {
-      display: none; position: fixed; inset: 0; z-index: 9999;
-      background: var(--bg);
-      flex-direction: column; align-items: center; justify-content: center;
-      font-size: 1.2rem; color: #666; gap: 14px;
-    }
-    #rotate-prompt .ri { font-size: 3.5rem; animation: wiggle 1.2s ease-in-out infinite; }
-    @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-20deg)} 75%{transform:rotate(20deg)} }
-
-    #phase3 { max-width: 100%; padding: 4px 6px; }
-    .p3-layout {
-      display: flex; width: 100%; flex: 1; align-items: stretch;
-    }
-    .p3-layout.layout-standard { gap: 8px; }
-    .p3-layout.layout-compound { gap: 20px; }
-    .p3-layout.layout-single { gap: 0; }
-
-    .syl-col { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-    .syl-box {
-      position: relative; flex: 1; border-radius: 14px;
-      overflow: hidden; box-shadow: var(--shadow); min-height: 100px;
-    }
-    .syl-box canvas {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      z-index: 2; cursor: crosshair; background: white;
-      border: 3px dashed #ddd; border-radius: 14px;
-      transition: border-color 0.3s, background 0.3s;
-    }
-    .syl-box canvas.locked { border-color: var(--color-er); background: #f0fff0; pointer-events: none; }
-    .syl-box canvas.checking { border-color: var(--color-ur); animation: pulse-border 0.8s infinite; }
-    .syl-box canvas.error { border-color: #FF6347; animation: shake 0.45s ease; }
-
-    /* 畫布底字：支援彩色字母 */
-    .syl-box .hint {
-      position: absolute; inset: 0; display: flex;
-      align-items: center; justify-content: center;
-      font-family: 'Nunito', sans-serif;
-      font-size: clamp(2rem, 7vw, 4rem);
-      font-weight: 800; z-index: 1; pointer-events: none;
-      gap: 1px;
-    }
-    .hint-letter { color: #e8e8e8; transition: color 0.3s; }
-    .hint-letter.hl-ur { color: rgba(255,165,0,0.2); }
-    .hint-letter.hl-er { color: rgba(50,205,50,0.2); }
-    .hint-letter.hl-water { color: rgba(79,195,247,0.2); }
-    .hint-letter.hl-purple { color: rgba(155,89,182,0.2); }
-    .hint-letter.hl-cream { color: rgba(249,199,79,0.25); }
-    .hint-letter.hl-magic { color: rgba(233,30,99,0.2); }
-    .hint-letter.hl-silent { color: rgba(0,0,0,0.08); text-decoration: underline dashed rgba(0,0,0,0.12); }
-
-    .syl-box .ck-icon {
-      position: absolute; top: 4px; right: 4px; font-size: 1rem;
-      z-index: 3; pointer-events: none; display: none;
-    }
-    .syl-box canvas.locked ~ .ck-icon { display: block; }
-
-    .syl-btns { display: flex; gap: 6px; justify-content: center; }
-    .icon-btn {
-      width: 40px; height: 40px; border: none; border-radius: 50%;
-      font-size: 1.15rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: transform 0.1s; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    }
-    .icon-btn:active { transform: scale(0.88); }
-    .icon-btn.speak { background: #E8F4FD; }
-    .icon-btn.check { background: var(--gold); }
-    .icon-btn.erase { background: #FFE8E8; }
-
-    /* ═══ TTS 手動修正標籤 ═══ */
-    .tts-label {
-      display: block; text-align: center; margin-top: 2px;
-      font-size: 0.65rem; color: #bbb; cursor: pointer;
-      transition: color 0.2s;
-    }
-    .tts-label:hover { color: #4A90E2; }
-    .tts-label .tts-edit-icon { font-size: 0.55rem; margin-left: 2px; }
-    .tts-edit-input {
-      width: 80px; padding: 4px 8px; border: 2px solid #FFD700;
-      border-radius: 12px; font-family: inherit; font-size: 0.8rem;
-      text-align: center; outline: none; background: #FFFDE7;
-      display: block; margin: 4px auto 0;
-    }
-
-    .p3-footer {
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px; margin-top: 4px; min-height: 30px; width: 100%;
-    }
-    .loader { display:none; font-size:0.8rem; color:#aaa; align-items:center; gap:5px; }
-    .loader.show { display:flex; }
-    .loader .dot { width:6px; height:6px; background:var(--color-ur); border-radius:50%; animation:bdot .6s alternate infinite; }
-    .loader .dot:nth-child(2){animation-delay:.15s} .loader .dot:nth-child(3){animation-delay:.3s}
-    @keyframes bdot { to{transform:translateY(-4px)} }
-    .celebration { display:none; align-items:center; gap:8px; animation:popin .5s cubic-bezier(.175,.885,.32,1.275); }
-    .celebration.show { display:flex; }
-    .celebration .emoji { font-size:2rem; }
-    .celebration .msg { font-size:.95rem; font-weight:700; color:var(--color-er); }
-    .reset-btn {
-      font-family:inherit; font-size:.7rem; font-weight:600;
-      padding:5px 12px; border:none; border-radius:16px;
-      background:#eee; color:#888; cursor:pointer;
-    }
-
-    /* ═══ OCR 結果 Toast ═══ */
-    .ocr-toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 20000; padding: 12px 24px;
-      background: white; border-radius: 16px;
-      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
-      text-align: center; font-family: 'Fredoka', sans-serif;
-      animation: slideUp 0.3s ease; min-width: 240px;
-      display: flex; align-items: center; gap: 12px;
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-    .ocr-toast .ocr-seen { font-size: 1.5rem; font-weight: 800; color: #333; }
-    .ocr-toast .ocr-arrow { font-size: 1rem; color: #aaa; }
-    .ocr-toast .ocr-expected { font-size: 1.2rem; font-weight: 700; color: #888; }
-    .ocr-toast .ocr-result { font-size: 1.1rem; font-weight: 700; }
-    .ocr-toast .ocr-ok { color: #32CD32; }
-    .ocr-toast .ocr-ng { color: #FF6347; }
-
-    /* ═══ 無 Key 警告 ═══ */
-    .no-key-warning {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      z-index: 20000; padding: 24px 30px;
-      background: #FFF3CD; border: 2px solid #FFD700; border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      text-align: center; font-family: 'Fredoka', sans-serif;
-      animation: popin 0.3s ease; max-width: 320px;
-    }
-    .no-key-warning .nk-icon { font-size: 2.5rem; margin-bottom: 8px; }
-    .no-key-warning .nk-title { font-size: 1.1rem; font-weight: 700; color: #856404; margin-bottom: 8px; }
-    .no-key-warning .nk-text { font-size: 0.85rem; color: #856404; line-height: 1.5; margin-bottom: 12px; }
-    .no-key-warning .nk-btn {
-      padding: 8px 20px; border: none; border-radius: 16px;
-      background: var(--gold); color: #333; font-family: inherit;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer;
-    }
-    .next-word-btn {
-      margin-top: 6px; padding: 8px 20px;
-      font-family: inherit; font-size: .95rem; font-weight: 700;
-      border: none; border-radius: 28px;
-      background: #4A90E2; color: white; cursor: pointer;
-      box-shadow: 0 4px 12px rgba(74,144,226,0.3);
-      animation: popin 0.4s ease; display: none;
-    }
-    .next-word-btn.show { display: inline-block; }
-
-    /* ═══ 設定 Modal ═══ */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0; z-index: 10000;
-      background: rgba(0,0,0,0.4); align-items: center; justify-content: center;
-      padding: 16px;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: white; border-radius: 24px; padding: 24px;
-      max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-    }
-    .modal h2 { font-size: 1.2rem; margin-bottom: 14px; }
-    .modal label { font-size: 0.82rem; font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
-    .modal textarea, .modal input[type="password"] {
-      width: 100%; padding: 10px 14px; border: 2px solid #eee;
-      border-radius: 14px; font-family: inherit; font-size: 0.9rem;
-      resize: vertical; outline: none; transition: border-color 0.2s;
-    }
-    .modal textarea:focus, .modal input:focus { border-color: var(--gold); }
-    .modal textarea { min-height: 130px; line-height: 1.6; }
-    .modal .hint-text { font-size: 0.72rem; color: #aaa; margin-top: 4px; line-height: 1.4; }
-    .modal .section { margin-bottom: 18px; }
-    .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-    .modal-btn {
-      padding: 10px 22px; border: none; border-radius: 20px;
-      font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
-    }
-    .modal-btn.save { background: var(--gold); color: #333; }
-    .modal-btn.cancel { background: #eee; color: #888; }
-    .modal-btn.reset-default { background: #E8F4FD; color: #4A90E2; font-size: 0.8rem; }
-
-    /* ═══ 動畫 ═══ */
-    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
-    @keyframes pulse-border { 0%,100%{border-color:var(--color-ur)} 50%{border-color:var(--gold)} }
-    @keyframes popin { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
-    /* ═══ 使用者切換 ═══ */
-    .user-switcher {
-      display: flex; gap: 4px; flex-shrink: 0;
-    }
-    .user-btn {
-      padding: 5px 12px; border: 2px solid transparent; border-radius: 18px;
-      font-family: inherit; font-size: 0.78rem; font-weight: 700;
-      cursor: pointer; background: white; color: #bbb;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      transition: all 0.2s; white-space: nowrap;
-    }
-    .user-btn.active-user {
-      border-color: var(--gold); color: #333; background: #FFFDE7;
-      box-shadow: 0 2px 10px rgba(255,215,0,0.3);
-    }
-
-    /* ═══ 字根指示器 ═══ */
-    .root-badge {
-      display: inline-block; cursor: pointer;
-      font-size: 0.5em; vertical-align: super;
-      animation: sparkle 1.5s ease-in-out infinite;
-      filter: drop-shadow(0 0 3px rgba(255,200,0,0.6));
-    }
-    @keyframes sparkle {
-      0%,100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(1.3); }
-    }
-    .root-badge-box {
-      position: absolute; top: 4px; left: 4px;
-      font-size: 1rem; z-index: 3;
-      cursor: pointer; animation: sparkle 1.5s ease-in-out infinite;
-    }
-
-    /* ═══ 字根故事 Modal ═══ */
-    .root-modal-overlay {
-      display: none; position: fixed; inset: 0; z-index: 10001;
-      background: rgba(0,0,0,0.5);
-      align-items: center; justify-content: center;
-      padding: 20px; animation: fadeUp 0.2s ease;
-    }
-    .root-modal-overlay.open { display: flex; }
-    .root-modal {
-      background: white; border-radius: 28px; padding: 28px;
-      max-width: 360px; width: 100%; text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-      animation: popin 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
-    }
-    .root-modal .root-emoji { font-size: 3rem; margin-bottom: 8px; }
-    .root-modal .root-title {
-      font-size: 1.3rem; font-weight: 700; color: #333; margin-bottom: 12px;
-    }
-    .root-modal .root-story {
-      font-size: 1rem; color: #555; line-height: 1.7;
-      padding: 14px; background: #FFF8E1; border-radius: 16px;
-      margin-bottom: 16px;
-    }
-    .root-modal .root-close {
-      padding: 10px 28px; border: none; border-radius: 24px;
-      background: var(--gold); color: #333; font-family: inherit;
-      font-size: 1rem; font-weight: 600; cursor: pointer;
-    }
-    .root-modal .root-listen {
-      padding: 10px 20px; border: none; border-radius: 24px;
-      background: #E8F4FD; color: #4A90E2; font-family: inherit;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-right: 8px;
-    }
-    .root-modal .word-family {
-      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .root-modal .family-word {
-      padding: 6px 14px; background: #FFF3E0; border-radius: 16px;
-      font-size: 0.9rem; font-weight: 600; color: var(--color-ur);
-      cursor: pointer; transition: transform 0.1s;
-    }
-    .root-modal .family-word:active { transform: scale(0.95); }
-    .root-modal .family-label {
-      font-size: 0.75rem; color: #aaa; margin-bottom: 6px;
-    }
-    .root-modal .silly-sentence {
-      padding: 12px; background: #E3F2FD; border-radius: 14px;
-      margin-bottom: 6px; cursor: pointer; transition: transform 0.1s;
-    }
-    .root-modal .silly-sentence:active { transform: scale(0.98); }
-    .root-modal .silly-en {
-      font-size: 1rem; font-weight: 600; color: #1565C0; margin-bottom: 4px;
-    }
-    .root-modal .silly-tw {
-      font-size: 0.85rem; color: #666;
-    }
-    .root-modal .silly-hint {
-      font-size: 0.65rem; color: #aaa; margin-bottom: 10px;
-    }
-
-    /* ═══ 載入字單 Overlay ═══ */
-    .fetch-overlay {
-      display: none; position: fixed; inset: 0; z-index: 10002;
-      background: rgba(255,248,240,0.95);
-      flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px;
-    }
-    .fetch-overlay.show { display: flex; }
-    .fetch-overlay .fo-title { font-size: 1.2rem; font-weight: 700; color: #333; }
-    .fetch-overlay .fo-word { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
-    .fetch-overlay .fo-bar {
-      width: 260px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;
-    }
-    .fetch-overlay .fo-fill {
-      height: 100%; background: var(--gold); border-radius: 4px;
-      transition: width 0.3s ease;
-    }
-    .fetch-overlay .fo-status { font-size: 0.85rem; color: #999; }
-  </style>
-</head>
-<body>
-
-  <div id="rotate-prompt"><div class="ri">📱🔄</div><div>請將手機橫放以進入手寫模式</div></div>
-
-  <!-- 設定 Modal -->
-  <div class="modal-overlay" id="settings-modal">
-    <div class="modal">
-      <h2 id="settings-title">📝 今日字單設定</h2>
-      <div class="section">
-        <label>單字列表（每行一個）</label>
-        <textarea id="word-input" placeholder="hamburger&#10;computer&#10;water&#10;ice cream"></textarea>
-        <div class="hint-text">
-          直接輸入單字即可，例如 computer、water<br>
-          詞庫會自動切音節並套用顏色標記<br>
-          詞庫外的字可用 - 手動切：syl-la-ble
-        </div>
-      </div>
-      <div class="section">
-        <label>🧠 Gemini API Key（AI 音節分析 + 字根故事 + 手寫辨識）</label>
-        <input type="password" id="gemini-key-input" placeholder="AIza...">
-        <div class="hint-text">
-          免費申請：<a href="https://aistudio.google.com/apikey" target="_blank" style="color:#4A90E2">Google AI Studio</a><br>
-          一把 Key 搞定所有功能：音節切割、字根故事、手寫辨識。<br>
-          已分析過的字會存在裝置上，不重複呼叫。
-        </div>
-      </div>
-      <div class="modal-btns">
-        <button class="modal-btn cancel" onclick="closeSettings()">取消</button>
-        <button class="modal-btn save" onclick="saveSettings()">✅ 儲存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 頂部 -->
-  <div class="top-bar">
-    <div class="user-switcher">
-      <button class="user-btn active-user" id="btn-iggy" onclick="switchUser('iggy')">🦊 Iggy</button>
-      <button class="user-btn" id="btn-yoyo" onclick="switchUser('yoyo')">🐸 Yoyo</button>
-    </div>
-    <div class="word-pills" id="word-pills"></div>
-    <button class="gear-btn" onclick="openSettings()">⚙️</button>
-  </div>
-  <nav class="nav">
-    <button class="nav-btn active" onclick="switchPhase(1)">👀 聽與看</button>
-    <button class="nav-btn" onclick="switchPhase(2)">🎤 開口唸</button>
-    <button class="nav-btn" onclick="switchPhase(3)">✏️ 手寫</button>
-  </nav>
-
-  <!-- PHASE 1 -->
-  <div id="phase1" class="phase active">
-    <div class="word-display" id="p1-display"></div>
-    <button class="btn btn-primary" onclick="playPhase1()" style="font-size:1.2rem; padding:14px 34px;">🔊 聽聽看</button>
-    <div class="phonics-note" id="p1-note"></div>
-  </div>
-
-  <!-- PHASE 2 -->
-  <div id="phase2" class="phase">
-    <div class="word-display" id="p2-display"></div>
-    <button class="btn btn-primary" id="mic-btn" onclick="startRecognition()" style="font-size:1.2rem; padding:14px 34px;">🎤 換你唸</button>
-    <div class="speech-result" id="speech-result"></div>
-  </div>
-
-  <!-- PHASE 3 -->
-  <div id="phase3" class="phase">
-    <div class="p3-layout" id="p3-layout"></div>
-    <div class="p3-footer">
-      <div class="loader" id="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>老師正在看...</span></div>
-      <div class="celebration" id="celebration">
-        <div class="emoji">🎉</div>
-        <div class="msg" id="cel-msg"></div>
-      </div>
-      <button class="reset-btn" onclick="resetAllCanvas()">🗑️ 全部清除</button>
-    </div>
-    <button class="next-word-btn" id="next-word-btn" onclick="goNextWord()">👉 下一個單字</button>
-  </div>
-
-  <!-- 字根故事 Modal -->
-  <div class="root-modal-overlay" id="root-modal">
-    <div class="root-modal">
-      <div class="root-emoji" id="root-emoji">🏰</div>
-      <div class="root-title" id="root-title"></div>
-      <div class="root-story" id="root-story"></div>
-      <div class="family-label" id="family-label"></div>
-      <div class="word-family" id="word-family"></div>
-      <div class="silly-sentence" id="silly-box" onclick="playSillySentence()" style="display:none">
-        <div class="silly-en" id="silly-en"></div>
-        <div class="silly-tw" id="silly-tw"></div>
-      </div>
-      <div class="silly-hint" id="silly-hint"></div>
-      <button class="root-listen" onclick="readRootStory()">🔊 唸故事</button>
-      <button class="root-close" onclick="closeRootModal()">知道了！</button>
-    </div>
-  </div>
-
-  <!-- AI 載入進度 -->
-  <div class="fetch-overlay" id="fetch-overlay">
-    <div class="fo-title">🧠 AI 老師正在分析單字...</div>
-    <div class="fo-word" id="fo-word"></div>
-    <div class="fo-bar"><div class="fo-fill" id="fo-fill" style="width:0%"></div></div>
-    <div class="fo-status" id="fo-status">準備中...</div>
-  </div>
-
-  <script src="phonics-dict.js"></script>
-  <script>
-    // ══════════════════════════════════════════════════════════════
-    //  資料驅動核心：Phonics Lessons 資料結構
-    // ══════════════════════════════════════════════════════════════
-    const DEFAULT_LESSONS = [
-      {
-        id: "word_hamburger", word: "hamburger", layout: "standard",
-        fullTts: "hamburger",
-        chunks: [
-          { text: "ham", tts: "ham", highlights: [] },
-          { text: "burg", tts: "burg", highlights: [
-            { target: "ur", cssClass: "color-ur", hintClass: "hl-ur", note: "橘色 ur" }
-          ]},
-          { text: "er", tts: "ur", highlights: [
-            { target: "er", cssClass: "color-er-ending", hintClass: "hl-er", note: "綠色 er，字尾 er 家族" }
-          ]}
-        ],
-        rootInfo: {
-          targetChunk: "burg", emoji: "🏰",
-          title: "🏰 burg（城堡城市）",
-          story: "hamburger 來自德國漢堡市 Hamburg，那裡的人發明了這種肉排！跟火腿 ham 沒關係喔！",
-          wordFamily: ["turtle", "nurse", "burn"],
-          sillySentence: "A turtle nurse eats a hamburger on fire!",
-          sillySentenceTw: "一隻烏龜護士在吃著火的漢堡！"
-        }
-      },
-      {
-        id: "word_hotdog", word: "hot dog", layout: "compound",
-        fullTts: "hot dog",
-        chunks: [
-          { text: "hot", tts: "hot", highlights: [] },
-          { text: "dog", tts: "dog", highlights: [] }
-        ]
-      },
-      {
-        id: "word_water", word: "water", layout: "standard",
-        fullTts: "water",
-        chunks: [
-          { text: "wa", tts: "wah", highlights: [
-            { target: "wa", cssClass: "color-water-blue", hintClass: "hl-water", note: "水藍色 💧" }
-          ]},
-          { text: "ter", tts: "tur", highlights: [
-            { target: "er", cssClass: "color-er-ending", hintClass: "hl-er", note: "綠色 er，跟 hamburger 一樣！" }
-          ]}
-        ],
-        rootInfo: {
-          targetChunk: "ter", emoji: "💧",
-          title: "💧 er（字尾 er 家族）",
-          story: "很多單字結尾都有 er！water、teacher、computer 都是 er 家族的好朋友！",
-          wordFamily: ["teacher", "computer", "sister"],
-          sillySentence: "The teacher drinks water on the computer!",
-          sillySentenceTw: "老師在電腦上面喝水！"
-        }
-      },
-      {
-        id: "word_milk", word: "milk", layout: "single",
-        fullTts: "milk",
-        chunks: [
-          { text: "milk", tts: "milk", highlights: [] }
-        ]
-      },
-      {
-        id: "word_juice", word: "juice", layout: "standard",
-        fullTts: "juice",
-        chunks: [
-          { text: "jui", tts: "joo", highlights: [
-            { target: "ui", cssClass: "color-grape-purple", hintClass: "hl-purple", note: "紫色 ui，像葡萄汁 🍇" }
-          ]},
-          { text: "ce", tts: "suh", highlights: [
-            { target: "ce", cssClass: "style-silent-e", hintClass: "hl-silent", note: "c 遇到 e 唸 /s/，e 不發音" }
-          ]}
-        ],
-        rootInfo: {
-          targetChunk: "jui", emoji: "🍇",
-          title: "🍇 juice（果汁）",
-          story: "juice 來自拉丁文 jus，就是「液體」的意思！果汁就是水果流出來的液體！",
-          wordFamily: ["fruit", "suit"],
-          sillySentence: "A pig in a suit drinks juice on the roof!",
-          sillySentenceTw: "一隻穿西裝的豬在屋頂上喝果汁！"
-        }
-      },
-      {
-        id: "word_icecream", word: "ice cream", layout: "compound",
-        fullTts: "ice cream",
-        chunks: [
-          { text: "ice", tts: "ice", highlights: [
-            { target: "i", cssClass: "style-magic-e", hintClass: "hl-magic", note: "Magic E：e 讓 i 唸自己的名字" },
-            { target: "e", cssClass: "style-magic-e", hintClass: "hl-magic", note: "" }
-          ]},
-          { text: "cream", tts: "cream", highlights: [
-            { target: "ea", cssClass: "color-cream-yellow", hintClass: "hl-cream", note: "奶油黃 ea，母音團隊 🍦" }
-          ]}
-        ]
-      }
-    ];
-
-    // ══════════════════════════════════════════
-    // 全域狀態
-    // ══════════════════════════════════════════
-    const synth = window.speechSynthesis;
-    let LESSONS = [];
-    let currentWordIdx = 0;
-    let currentPhase = 1;
-    let canvasIds = [];
-    let GEMINI_KEY = '';
-    let usingDefaults = true;
-    let currentUser = 'iggy';
-    const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo' };
-    let preferredVoice = null;
-
-    function findBestVoice() {
-      const voices = synth.getVoices();
-      preferredVoice = voices.find(v => v.name === 'Google US English') ||
-                       voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
-                       null;
-      if (preferredVoice) console.log('🔊 Voice:', preferredVoice.name);
-    }
-
-    function speak(text, rate = 0.75) {
-      synth.cancel();
-      return new Promise(resolve => {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'en-US'; u.rate = rate;
-        if (preferredVoice) u.voice = preferredVoice;
-        u.onend = resolve; u.onerror = resolve;
-        synth.speak(u);
-      });
-    }
-
-    function speakChunk(chunk, rate = 0.75) {
-      const lesson = LESSONS[currentWordIdx];
-      if (lesson) {
-        const ci = lesson.chunks.indexOf(chunk);
-        if (ci >= 0) {
-          const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
-          return speak(override, rate);
-        }
-      }
-      return speak(chunk.tts || chunk.text, rate);
-    }
-
-    function speakFullWord(lesson, rate = 0.8) {
-      return speak(lesson.fullTts || lesson.word, rate);
-    }
-
-    // ══════════════════════════════════════════
-    // TTS 手動修正（localStorage 持久化）
-    // ══════════════════════════════════════════
-    function getTtsOverrides() {
-      try { return JSON.parse(localStorage.getItem('phonics-tts-overrides') || '{}'); } catch(e) { return {}; }
-    }
-    function setTtsOverride(word, chunkIdx, ttsValue) {
-      const o = getTtsOverrides();
-      o[word.toLowerCase() + '_' + chunkIdx] = ttsValue;
-      localStorage.setItem('phonics-tts-overrides', JSON.stringify(o));
-    }
-    function getOverriddenTts(word, chunkIdx, defaultTts) {
-      const o = getTtsOverrides();
-      return o[word.toLowerCase() + '_' + chunkIdx] || defaultTts;
-    }
-
-    function speakChinese(text) {
-      synth.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'zh-TW'; u.rate = 0.9;
-      synth.speak(u);
-    }
-
-    // ══════════════════════════════════════════
-    // 本地快取 (localStorage)
-    // ══════════════════════════════════════════
-    function getCache(word) {
-      try {
-        const c = JSON.parse(localStorage.getItem('phonics-ai-cache') || '{}');
-        return c[word.toLowerCase()] || null;
-      } catch(e) { return null; }
-    }
-    function setCache(word, data) {
-      try {
-        const c = JSON.parse(localStorage.getItem('phonics-ai-cache') || '{}');
-        c[word.toLowerCase()] = data;
-        localStorage.setItem('phonics-ai-cache', JSON.stringify(c));
-      } catch(e) {}
-    }
-
-    // ══════════════════════════════════════════
-    // Gemini API
-    // ══════════════════════════════════════════
-    async function fetchFromGemini(word) {
-      if (!GEMINI_KEY) return null;
-      const sysPrompt = `你是教 9 歲兒童英文的自然發音與字根老師。分析單字，回傳 JSON。
-
-【核心任務】
-1. chunks：切成自然發音音節，盡量保留字根完整性（如 hamburger → ham-burg-er）。單音節字不切。
-2. tts：餵給 TTS 語音引擎的發音字串。短音節必須轉成自然發音拼寫法，防止引擎逐字拼讀：
-   wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→suh
-3. rootInfo：找出最核心字根或最難的發音規則，生成以下擴充教學內容：
-   - story：30 字以內的有趣字根或發音故事，像對小學三年級學生說話。
-   - wordFamily：陣列格式，2~3 個與該 chunk 擁有「相同發音規則」且適合國小生程度的簡單單字。
-   - sillySentence：用目標單字造一句 10 個字以內、情境誇張搞笑有畫面的英文句子（強烈建議把 wordFamily 裡的單字也編進去，產生荒謬感）。
-   - sillySentenceTw：該搞笑句子的繁體中文口語化翻譯。
-
-【Phonics 視覺標記規則 (highlights)】
-請仔細檢查每個 chunk 是否包含以下規則，有的話務必加入 highlights：
-[Silent E / 魔法 e] 字尾不發音的 e：{"target":"e","cssClass":"style-silent-e","hintClass":"hl-silent","note":"灰色 e：安靜不發音"}
-[Soft C/G] c 遇到 e/i/y 唸 /s/：{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}
-[Vowel Teams] ea, ee, ai, oa, oo：{"target":"ea","cssClass":"color-cream-yellow","hintClass":"hl-cream","note":"黃色 ea：兩個母音一起，第一個講話"}
-[Bossy R] ur/ir → color-ur(橘), er → color-er-ending(綠)
-[Digraphs] sh, ch, th → color-water-blue(藍)
-
-cssClass 可用：color-ur(橘)、color-er-ending(綠)、color-water-blue(藍)、color-grape-purple(紫)、color-cream-yellow(黃)、style-magic-e(粉紅)、style-silent-e(灰虛線)
-hintClass 可用：hl-ur、hl-er、hl-water、hl-purple、hl-cream、hl-magic、hl-silent
-layout 可用：single(單音節)、standard(多音節)、compound(複合字如 hot dog)
-
-JSON 範例：
-{"word":"hamburger","chunks":[{"text":"ham","tts":"ham","highlights":[]},{"text":"burg","tts":"burr","highlights":[{"target":"ur","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ur"}]},{"text":"er","tts":"ur","highlights":[{"target":"er","cssClass":"color-er-ending","hintClass":"hl-er","note":"綠色 er"}]}],"layout":"standard","fullTts":"hamburger","rootInfo":{"targetChunk":"burg","emoji":"🏰","title":"🏰 burg（城堡城市）","story":"hamburger 來自德國漢堡市，跟火腿(ham)沒有關係喔！","wordFamily":["turtle","nurse"],"sillySentence":"A turtle eats a hamburger in the bathtub!","sillySentenceTw":"一隻烏龜在浴缸裡吃漢堡！"}}`;
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `分析：${word}` }] }],
-              systemInstruction: { parts: [{ text: sysPrompt }] },
-              generationConfig: { responseMimeType: 'application/json' }
-            })
-          }
-        );
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) return null;
-        return JSON.parse(text.replace(/```json|```/g, '').trim());
-      } catch(err) { console.error('Gemini error:', err); return null; }
-    }
-
-    // 智慧解析：快取 → Gemini → 靜態詞庫 → 基本
-    async function resolveWord(input) {
-      // 有 - 分隔 = 手動切割，不讓 Gemini 覆蓋音節
-      if (input.includes('-')) {
-        const chunks = input.split('-').map(s => s.trim()).filter(Boolean);
-        const word = chunks.join('');
-        const cached = getCache(input);
-        if (cached) return cached;
-        // 查靜態詞庫看有沒有 highlights
-        const dictKey = word.toLowerCase().replace(/[\s\.\']/g, '');
-        const dictEntry = (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[dictKey]);
-        const e = {
-          word: word, layout: chunks.length === 1 ? 'single' : 'standard',
-          fullTts: word,
-          chunks: chunks.map(text => {
-            // 從靜態詞庫找匹配的 chunk 拿 highlights
-            const match = dictEntry?.chunks?.find(c => c.text === text);
-            return { text, tts: match?.tts || text, highlights: match?.highlights || [] };
-          })
-        };
-        // 如果靜態詞庫有 rootInfo 就帶入
-        if (dictEntry?.rootInfo) e.rootInfo = dictEntry.rootInfo;
-        setCache(input, e);
-        return e;
-      }
-
-      // 沒有 - = 讓系統決定切法
-      const cached = getCache(input);
-      if (cached) return cached;
-      if (GEMINI_KEY) {
-        const g = await fetchFromGemini(input);
-        if (g?.chunks?.length) { setCache(input, g); return g; }
-      }
-      const key = input.toLowerCase().replace(/[\s\-\.\']/g, '');
-      if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key]) {
-        const e = JSON.parse(JSON.stringify(PHONICS_DICT[key]));
-        setCache(input, e); return e;
-      }
-      const e = { word: input, layout: 'single', fullTts: input, chunks: [{ text: input, tts: input, highlights: [] }] };
-      setCache(input, e); return e;
-    }
-
-    // ══════════════════════════════════════════
-    // 字根故事 Modal
-    // ══════════════════════════════════════════
-    let currentRootInfo = null;
-    function showRootModal(rootInfo) {
-      if (!rootInfo) return;
-      currentRootInfo = rootInfo;
-      document.getElementById('root-emoji').textContent = rootInfo.emoji || '✨';
-      document.getElementById('root-title').textContent = rootInfo.title || '';
-      document.getElementById('root-story').textContent = rootInfo.story || '';
-
-      // 發音家族
-      const familyContainer = document.getElementById('word-family');
-      const familyLabel = document.getElementById('family-label');
-      familyContainer.innerHTML = '';
-      if (rootInfo.wordFamily?.length) {
-        familyLabel.textContent = '👨‍👩‍👧‍👦 發音家族（點擊聽發音）';
-        rootInfo.wordFamily.forEach(w => {
-          const btn = document.createElement('span');
-          btn.className = 'family-word';
-          btn.textContent = w;
-          btn.onclick = (e) => { e.stopPropagation(); speak(w, 0.8); };
-          familyContainer.appendChild(btn);
-        });
-      } else {
-        familyLabel.textContent = '';
-      }
-
-      // 荒謬情境句
-      const sillyBox = document.getElementById('silly-box');
-      const sillyHint = document.getElementById('silly-hint');
-      if (rootInfo.sillySentence) {
-        document.getElementById('silly-en').textContent = '🤪 ' + rootInfo.sillySentence;
-        document.getElementById('silly-tw').textContent = rootInfo.sillySentenceTw || '';
-        sillyBox.style.display = 'block';
-        sillyHint.textContent = '👆 點擊句子聽英文朗讀';
-      } else {
-        sillyBox.style.display = 'none';
-        sillyHint.textContent = '';
-      }
-
-      document.getElementById('root-modal').classList.add('open');
-    }
-    function closeRootModal() {
-      document.getElementById('root-modal').classList.remove('open');
-      currentRootInfo = null;
-    }
-    function readRootStory() {
-      if (currentRootInfo?.story) speakChinese(currentRootInfo.story);
-    }
-    function playSillySentence() {
-      if (currentRootInfo?.sillySentence) speak(currentRootInfo.sillySentence, 0.8);
-    }
-
-    // ══════════════════════════════════════════
-    // highlight 工具：將 text 拆成帶 class 的字母陣列
-    // ══════════════════════════════════════════
-    function buildLetterMap(text, highlights) {
-      // 每個字母一個物件：{ char, classes: [] }
-      const map = text.split('').map(ch => ({ char: ch, cssClasses: [], hintClasses: [], notes: [] }));
-
-      for (const hl of highlights) {
-        const target = hl.target;
-        // 找 target 在 text 中的位置
-        let idx = text.indexOf(target);
-        while (idx !== -1) {
-          for (let i = idx; i < idx + target.length; i++) {
-            if (hl.cssClass) map[i].cssClasses.push(hl.cssClass);
-            if (hl.hintClass) map[i].hintClasses.push(hl.hintClass);
-            if (hl.note) map[i].notes.push(hl.note);
-          }
-          idx = text.indexOf(target, idx + target.length);
-        }
-      }
-      return map;
-    }
-
-    // ══════════════════════════════════════════
-    // 設定 Modal
-    // ══════════════════════════════════════════
-    function switchUser(userId) {
-      // 儲存當前進度
-      currentUser = userId;
-      try { localStorage.setItem('phonics-current-user', userId); } catch(e) {}
-
-      // 更新按鈕樣式
-      document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active-user'));
-      document.getElementById('btn-' + userId).classList.add('active-user');
-
-      // 載入該使用者的字單
-      loadUserLessons();
-      currentWordIdx = 0;
-      if (currentPhase === 3) switchPhase(1);
-      renderWordPills();
-      loadCurrentWord();
-    }
-
-    function loadUserLessons() {
-      // 先從 localStorage 載入（瞬間）
-      try {
-        const saved = localStorage.getItem('phonics-' + currentUser + '-words');
-        if (saved) {
-          LESSONS = JSON.parse(saved);
-          usingDefaults = false;
-          return;
-        }
-      } catch(e) {}
-      LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
-      usingDefaults = true;
-
-      // ☁️ 背景從雲端同步
-      if (typeof syncFromCloud === 'function') {
-        syncFromCloud(currentUser).then(cloudLessons => {
-          if (cloudLessons && cloudLessons.length > 0) {
-            const localWords = LESSONS.map(l => l.word).join(',');
-            const cloudWords = cloudLessons.map(l => l.word).join(',');
-            if (cloudWords !== localWords) {
-              LESSONS = cloudLessons;
-              usingDefaults = false;
-              try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(cloudLessons)); } catch(e) {}
-              console.log('☁️ 雲端字單已同步到本機');
-              renderWordPills();
-              loadCurrentWord();
-            }
-          }
-        });
-      }
-    }
-
-    function openSettings() {
-      document.getElementById('settings-modal').classList.add('open');
-      document.getElementById('settings-title').textContent =
-        '📝 ' + USER_NAMES[currentUser] + ' 的字單設定';
-      const ta = document.getElementById('word-input');
-      if (LESSONS.length > 0) {
-        ta.value = LESSONS.map(l => l.word).join('\n');
-      }
-      document.getElementById('gemini-key-input').value = GEMINI_KEY;
-    }
-    function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
-
-    async function saveSettings() {
-      const raw = document.getElementById('word-input').value.trim();
-      const gKey = document.getElementById('gemini-key-input').value.trim();
-      if (!raw) { alert('請輸入至少一個單字！'); return; }
-
-      GEMINI_KEY = gKey;
-      try { localStorage.setItem('phonics-gemini-key', gKey); } catch(e) {}
-
-      closeSettings();
-      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-
-      // 顯示載入進度
-      const overlay = document.getElementById('fetch-overlay');
-      const foWord = document.getElementById('fo-word');
-      const foFill = document.getElementById('fo-fill');
-      const foStatus = document.getElementById('fo-status');
-      overlay.classList.add('show');
-
-      LESSONS = [];
-      for (let i = 0; i < lines.length; i++) {
-        const word = lines[i];
-        foWord.textContent = word;
-        foFill.style.width = `${((i) / lines.length) * 100}%`;
-        const cached = getCache(word);
-        foStatus.textContent = cached ? '✅ 快取命中' : (GEMINI_KEY ? '🧠 AI 分析中...' : '📖 查詢詞庫...');
-
-        const lesson = await resolveWord(word);
-        LESSONS.push(lesson);
-      }
-
-      foFill.style.width = '100%';
-      foStatus.textContent = '✅ 全部完成！';
-      await new Promise(r => setTimeout(r, 400));
-      overlay.classList.remove('show');
-
-      usingDefaults = false;
-      try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
-      // ☁️ 同步到 Firebase
-      if (typeof syncToCloud === 'function') syncToCloud(currentUser, LESSONS);
-
-      currentWordIdx = 0;
-      renderWordPills();
-      loadCurrentWord();
-    }
-
-    // ══════════════════════════════════════════
-    // 單字導覽
-    // ══════════════════════════════════════════
-    function renderWordPills() {
-      const c = document.getElementById('word-pills');
-      c.innerHTML = '';
-      LESSONS.forEach((l, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'pill' + (i === currentWordIdx ? ' active' : '');
-        // Phase 3 手寫階段：隱藏拼寫，只顯示序號
-        if (currentPhase === 3) {
-          btn.textContent = `#${i + 1}`;
-        } else {
-          btn.textContent = l.word;
-        }
-        btn.onclick = () => { currentWordIdx = i; renderWordPills(); loadCurrentWord(); };
-        c.appendChild(btn);
-      });
-    }
-    function goNextWord() {
-      if (currentWordIdx < LESSONS.length - 1) {
-        currentWordIdx++;
-        renderWordPills(); loadCurrentWord(); switchPhase(1);
-      }
-    }
-
-    // ══════════════════════════════════════════
-    // 載入當前單字
-    // ══════════════════════════════════════════
-    function loadCurrentWord() {
-      if (!LESSONS.length) return;
-      const lesson = LESSONS[currentWordIdx];
-      document.getElementById('next-word-btn').classList.remove('show');
-      document.getElementById('celebration').classList.remove('show');
-      buildPhase1(lesson);
-      buildPhase2(lesson);
-      buildPhase3(lesson);
-      if (currentPhase === 3) {
-        checkOrientation();
-        raf2(() => initAllCanvas());
-      }
-    }
-    function raf2(fn) { requestAnimationFrame(() => requestAnimationFrame(fn)); }
-
-    // ══════════════════════════════════════════
-    // Phase 1：聽與看（含 highlights）
-    // ══════════════════════════════════════════
-    function buildPhase1(lesson) {
-      const container = document.getElementById('p1-display');
-      container.innerHTML = '';
-      const rootChunk = lesson.rootInfo?.targetChunk;
-
-      lesson.chunks.forEach((chunk, ci) => {
-        if (ci > 0) {
-          const sep = document.createElement('span');
-          sep.className = 'chunk-separator' +
-            (lesson.layout === 'compound' ? ' compound-gap' : '');
-          sep.textContent = lesson.layout === 'compound' ? ' ' : '-';
-          container.appendChild(sep);
-        }
-
-        const group = document.createElement('span');
-        group.className = 'chunk-group';
-        group.id = `p1-c${ci}`;
-
-        // 字根 ✨ 標記
-        if (rootChunk && chunk.text.toLowerCase() === rootChunk.toLowerCase()) {
-          const badge = document.createElement('span');
-          badge.className = 'root-badge';
-          badge.textContent = '✨';
-          badge.onclick = (e) => { e.stopPropagation(); showRootModal(lesson.rootInfo); };
-          group.appendChild(badge);
-        }
-
-        const letters = buildLetterMap(chunk.text, chunk.highlights);
-        letters.forEach(lm => {
-          const span = document.createElement('span');
-          span.className = 'chunk-letter';
-          span.textContent = lm.char;
-          span.dataset.css = lm.cssClasses.join(' ');
-          group.appendChild(span);
-        });
-        container.appendChild(group);
-
-        // TTS 發音標籤（可點擊修改）
-        const currentTts = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
-        const label = document.createElement('div');
-        label.className = 'tts-label';
-        label.innerHTML = '🔤 ' + currentTts + ' <span class="tts-edit-icon">✏️</span>';
-        label.title = '點擊修改發音';
-        label.onclick = ((chunkRef, chunkIdx, lessonRef) => (e) => {
-          e.stopPropagation();
-          const curVal = getOverriddenTts(lessonRef.word, chunkIdx, chunkRef.tts || chunkRef.text);
-          const input = document.createElement('input');
-          input.className = 'tts-edit-input';
-          input.value = curVal;
-          input.placeholder = '輸入發音拼寫';
-          label.replaceWith(input);
-          input.focus(); input.select();
-          function save() {
-            const newVal = input.value.trim() || curVal;
-            setTtsOverride(lessonRef.word, chunkIdx, newVal);
-            chunkRef.tts = newVal;
-            buildPhase1(lessonRef);
-            speak(newVal, 0.75);
-          }
-          input.onkeydown = (ev) => { if (ev.key === 'Enter') save(); if (ev.key === 'Escape') buildPhase1(lessonRef); };
-          input.onblur = save;
-        })(chunk, ci, lesson);
-        container.appendChild(label);
-      });
-
-      // 教學提示
-      const noteDiv = document.getElementById('p1-note');
-      const notes = lesson.chunks.flatMap(c =>
-        c.highlights.filter(h => h.note).map(h => h.note)
-      );
-      if (lesson.rootInfo?.title) notes.push('點 ✨ 看字根故事');
-      noteDiv.innerHTML = notes.length
-        ? '💡 ' + notes.join('　')
-        : '按下按鈕，聽每個音節怎麼唸！';
-    }
-
-    async function playPhase1() {
-      const lesson = LESSONS[currentWordIdx];
-      if (!lesson) return;
-
-      // 重置所有字母顏色
-      document.querySelectorAll('#p1-display .chunk-letter').forEach(el => {
-        el.className = 'chunk-letter';
-      });
-      document.querySelectorAll('#p1-display .chunk-group').forEach(el => {
-        el.classList.remove('active-chunk');
-      });
-
-      // 逐音節播放
-      for (let ci = 0; ci < lesson.chunks.length; ci++) {
-        const chunk = lesson.chunks[ci];
-        const group = document.getElementById(`p1-c${ci}`);
-        group.classList.add('active-chunk');
-
-        // 亮起顏色
-        const letters = group.querySelectorAll('.chunk-letter');
-        letters.forEach(el => {
-          const css = el.dataset.css;
-          if (css) el.className = 'chunk-letter ' + css;
-          else {
-            const DFLT = ['color: #FF6347','color: #FFA500','color: #32CD32','color: #4A90E2','color: #9B59B6'];
-            el.style.color = ['#FF6347','#FFA500','#32CD32','#4A90E2','#9B59B6'][ci % 5];
-          }
-        });
-
-        await speakChunk(chunk, 0.65);
-        group.classList.remove('active-chunk');
-      }
-
-      // 全部亮 + 完整唸
-      await new Promise(r => setTimeout(r, 200));
-      await speakFullWord(lesson);
-    }
-
-    // ══════════════════════════════════════════
-    // Phase 2
-    // ══════════════════════════════════════════
-    function buildPhase2(lesson) {
-      const container = document.getElementById('p2-display');
-      container.innerHTML = '';
-      lesson.chunks.forEach((chunk, ci) => {
-        if (ci > 0) {
-          const sep = document.createElement('span');
-          sep.className = 'chunk-separator' +
-            (lesson.layout === 'compound' ? ' compound-gap' : '');
-          sep.textContent = lesson.layout === 'compound' ? ' ' : '-';
-          container.appendChild(sep);
-        }
-        const group = document.createElement('span');
-        group.className = 'chunk-group'; group.id = `p2-c${ci}`;
-        const letters = buildLetterMap(chunk.text, chunk.highlights);
-        letters.forEach(lm => {
-          const span = document.createElement('span');
-          span.className = 'chunk-letter';
-          span.textContent = lm.char;
-          span.dataset.css = lm.cssClasses.join(' ');
-          group.appendChild(span);
-        });
-        container.appendChild(group);
-      });
-      const rd = document.getElementById('speech-result');
-      rd.textContent = `按下麥克風，大聲唸出 ${lesson.word}！`;
-      rd.style.color = '#888';
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition;
-    if (SpeechRecognition) {
-      recognition = new SpeechRecognition();
-      recognition.lang = 'en-US'; recognition.interimResults = false;
-    }
-    function startRecognition() {
-      if (!recognition) { alert('瀏覽器不支援語音辨識，請用 Chrome 或 Edge。'); return; }
-      const lesson = LESSONS[currentWordIdx]; if (!lesson) return;
-      const rd = document.getElementById('speech-result');
-      const mb = document.getElementById('mic-btn');
-      rd.textContent = `聆聽中… 大聲唸出 ${lesson.word}！`;
-      rd.style.color = '#888';
-      mb.style.background = '#FF6347'; mb.style.color = 'white';
-      recognition.start();
-      recognition.onresult = (e) => {
-        const t = e.results[0][0].transcript.toLowerCase().replace(/\s+/g, '');
-        mb.style.background = ''; mb.style.color = '';
-        const target = lesson.word.toLowerCase().replace(/\s+/g, '');
-        if (t.includes(target) || target.includes(t)) {
-          rd.innerHTML = `🎉 太棒了！`;
-          rd.style.color = 'var(--color-er)';
-          // 亮起顏色
-          lesson.chunks.forEach((_, ci) => {
-            document.querySelectorAll(`#p2-c${ci} .chunk-letter`).forEach(el => {
-              const css = el.dataset.css;
-              if (css) el.className = 'chunk-letter ' + css;
-              else el.style.color = ['#FF6347','#FFA500','#32CD32','#4A90E2','#9B59B6'][ci % 5];
-            });
-          });
-        } else {
-          rd.innerHTML = `你唸了 "${e.results[0][0].transcript}" 🧐 再試一次！`;
-          rd.style.color = '#FF6347';
-        }
-      };
-      recognition.onerror = () => { rd.textContent = '聽不清楚，請再試一次！'; mb.style.background=''; mb.style.color=''; };
-    }
-
-    // ══════════════════════════════════════════
-    // Phase 3：Canvas 建構（含 highlight 底字）
-    // ══════════════════════════════════════════
-    function buildPhase3(lesson) {
-      const layout = document.getElementById('p3-layout');
-      layout.innerHTML = '';
-      layout.className = 'p3-layout layout-' + (lesson.layout || 'standard');
-      canvasIds = [];
-      const rootChunk = lesson.rootInfo?.targetChunk;
-
-      lesson.chunks.forEach((chunk, ci) => {
-        const cvId = `cv-${ci}`;
-        canvasIds.push(cvId);
-
-        const col = document.createElement('div');
-        col.className = 'syl-col';
-
-        const letterMap = buildLetterMap(chunk.text, chunk.highlights);
-        const hintHTML = letterMap.map(lm => {
-          const cls = ['hint-letter', ...lm.hintClasses].join(' ');
-          return `<span class="${cls}">${lm.char}</span>`;
-        }).join('');
-
-        const isRoot = rootChunk && chunk.text.toLowerCase() === rootChunk.toLowerCase();
-        const rootBadgeHTML = isRoot
-          ? `<span class="root-badge-box" onclick="showRootModal(LESSONS[currentWordIdx].rootInfo)">✨</span>`
-          : '';
-
-        const isLastChunk = ci === lesson.chunks.length - 1;
-        const checkOnclick = isLastChunk && lesson.chunks.length > 1
-          ? `verifyAll()` 
-          : `verifySingle('${cvId}')`;
-        const checkIcon = isLastChunk && lesson.chunks.length > 1 ? '✅' : '☑️';
-
-        col.innerHTML = `
-          <div class="syl-box">
-            <div class="hint">${hintHTML}</div>
-            <canvas id="${cvId}" data-target="${chunk.text}" data-idx="${ci}"></canvas>
-            <span class="ck-icon">✅</span>
-            ${rootBadgeHTML}
-          </div>
-          <div class="syl-btns">
-            <button class="icon-btn speak" onclick="speakChunkByIdx(${ci})">🔊</button>
-            <button class="icon-btn check" onclick="${checkOnclick}">${checkIcon}</button>
-            <button class="icon-btn erase" onclick="eraseSingle('${cvId}')">🗑️</button>
-          </div>`;
-        layout.appendChild(col);
-      });
-
-      document.getElementById('celebration').classList.remove('show');
-      document.getElementById('next-word-btn').classList.remove('show');
-      document.getElementById('cel-msg').textContent = `太棒了！你完成了 ${lesson.word}！`;
-    }
-
-    function speakChunkByIdx(ci) {
-      const lesson = LESSONS[currentWordIdx];
-      if (!lesson) return;
-      const chunk = lesson.chunks[ci];
-      if (!chunk) return;
-      const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
-      speak(override, 0.75);
-    }
-
-    // ══════════════════════════════════════════
-    // Phase 切換 + 橫屏
-    // ══════════════════════════════════════════
-    function switchPhase(num) {
-      currentPhase = num;
-      document.querySelectorAll('.phase').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(`phase${num}`).classList.add('active');
-      document.querySelectorAll('.nav-btn')[num - 1].classList.add('active');
-      renderWordPills(); // 切換時更新藥丸（Phase 3 隱藏拼寫）
-      if (num === 3) { checkOrientation(); raf2(() => initAllCanvas()); }
-      else document.getElementById('rotate-prompt').style.display = 'none';
-    }
-    function checkOrientation() {
-      const p = document.getElementById('rotate-prompt');
-      if (currentPhase !== 3) { p.style.display = 'none'; return; }
-      p.style.display = (window.innerHeight > window.innerWidth) ? 'flex' : 'none';
-    }
-    window.addEventListener('resize', () => {
-      checkOrientation();
-      if (currentPhase === 3) raf2(() => initAllCanvas());
-    });
-
-    // ══════════════════════════════════════════
-    // Canvas
-    // ══════════════════════════════════════════
-    function initAllCanvas() { canvasIds.forEach(initCanvas); }
-    function initCanvas(id) {
-      const canvas = document.getElementById(id);
-      if (!canvas || canvas.classList.contains('locked')) return;
-      const parent = canvas.parentElement;
-      const rect = parent.getBoundingClientRect();
-      if (rect.width < 10 || rect.height < 10) return;
-      const dpr = window.devicePixelRatio || 1;
-      const clone = canvas.cloneNode(true);
-      parent.replaceChild(clone, canvas);
-      const cv = document.getElementById(id);
-      cv.width = rect.width * dpr; cv.height = rect.height * dpr;
-      const ctx = cv.getContext('2d');
-      ctx.scale(dpr, dpr);
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.lineWidth = 7; ctx.strokeStyle = '#4A90E2';
-      let drawing = false, lx = 0, ly = 0;
-      cv.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); drawing = true;
-        const r = cv.getBoundingClientRect();
-        lx = e.clientX - r.left; ly = e.clientY - r.top;
-        cv.setPointerCapture(e.pointerId);
-      });
-      cv.addEventListener('pointermove', (e) => {
-        if (!drawing) return; e.preventDefault();
-        const r = cv.getBoundingClientRect();
-        const x = e.clientX - r.left, y = e.clientY - r.top;
-        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke();
-        lx = x; ly = y;
-      });
-      cv.addEventListener('pointerup', (e) => { drawing = false; cv.releasePointerCapture(e.pointerId); });
-      cv.addEventListener('pointercancel', () => drawing = false);
-    }
-
-    // ══════════════════════════════════════════
-    // Gemini Key 檢查
-    // ══════════════════════════════════════════
-    function showNoKeyWarning() {
-      // 如果已經有警告在顯示就不重複
-      if (document.querySelector('.no-key-warning')) return false;
-      const warn = document.createElement('div');
-      warn.className = 'no-key-warning';
-      warn.innerHTML = `
-        <div class="nk-icon">🔑</div>
-        <div class="nk-title">尚未設定 Gemini API Key</div>
-        <div class="nk-text">手寫辨識需要 Gemini AI。<br>請按右上角 ⚙️ 設定並輸入你的 Key。</div>
-        <button class="nk-btn" onclick="this.parentElement.remove(); openSettings();">前往設定</button>
-      `;
-      document.body.appendChild(warn);
-      return false; // 表示沒有 key
-    }
-
-    // ══════════════════════════════════════════
-    // 驗證
-    // ══════════════════════════════════════════
-    async function verifySingle(canvasId) {
-      if (!GEMINI_KEY) { showNoKeyWarning(); return; }
-      const canvas = document.getElementById(canvasId);
-      if (!canvas || canvas.classList.contains('locked')) return;
-      if (isCanvasBlank(canvas)) {
-        canvas.classList.add('error');
-        setTimeout(() => canvas.classList.remove('error'), 500);
-        return;
-      }
-      const loader = document.getElementById('loader');
-      loader.classList.add('show');
-      canvas.classList.add('checking');
-      const target = canvas.dataset.target;
-      const result = await recognizeWithGemini(canvas, target);
-      canvas.classList.remove('checking');
-      loader.classList.remove('show');
-      if (result) {
-        canvas.classList.add('locked');
-        const ci = parseInt(canvas.dataset.idx);
-        await speakChunkByIdx(ci);
-        checkAllComplete();
-      } else {
-        canvas.classList.add('error');
-        await speak('oops', 1.0);
-        await new Promise(r => setTimeout(r, 500));
-        canvas.classList.remove('error');
-        clearCanvas(canvas);
-      }
-    }
-
-    // 依序檢查所有音節（點最後一個 ✅ 觸發）
-    async function verifyAll() {
-      if (!GEMINI_KEY) { showNoKeyWarning(); return; }
-      const loader = document.getElementById('loader');
-      loader.classList.add('show');
-
-      for (let i = 0; i < canvasIds.length; i++) {
-        const cvId = canvasIds[i];
-        const canvas = document.getElementById(cvId);
-        if (!canvas) continue;
-        if (canvas.classList.contains('locked')) {
-          // 已通過的音節：唸出來然後繼續
-          await speakChunkByIdx(i);
-          await new Promise(r => setTimeout(r, 200));
-          continue;
-        }
-
-        // 空白檢查
-        if (isCanvasBlank(canvas)) {
-          loader.classList.remove('show');
-          canvas.classList.add('error');
-          setTimeout(() => canvas.classList.remove('error'), 500);
-          return; // 停止
-        }
-
-        // OCR 檢查
-        canvas.classList.add('checking');
-        const target = canvas.dataset.target;
-        const result = await recognizeWithGemini(canvas, target);
-        canvas.classList.remove('checking');
-
-        if (result) {
-          canvas.classList.add('locked');
-          await speakChunkByIdx(i);
-          await new Promise(r => setTimeout(r, 200));
-        } else {
-          // 寫錯 → 停在這裡
-          loader.classList.remove('show');
-          canvas.classList.add('error');
-          await speak('oops', 1.0);
-          await new Promise(r => setTimeout(r, 500));
-          canvas.classList.remove('error');
-          clearCanvas(canvas);
-          return; // 停止，不繼續檢查後面的
-        }
-      }
-
-      loader.classList.remove('show');
-      checkAllComplete();
-    }
-    function eraseSingle(id) {
-      const c = document.getElementById(id);
-      if (!c) return;
-      // 允許清除已鎖定的畫布（重做）
       c.classList.remove('locked', 'error', 'checking');
       clearCanvas(c);
       initCanvas(id); // 重新綁定事件
@@ -1492,15 +133,20 @@ JSON 範例：
       return count < (canvas.width * canvas.height * 0.005);
     }
 
+
     async function recognizeWithGemini(canvas, target) {
       if (!GEMINI_KEY) return !isCanvasBlank(canvas); // fallback
 
+
       const imageData = canvas.toDataURL('image/png').split(',')[1];
+
 
       // Step 1: 盲讀 — 不告訴 AI 答案，只問「你看到什麼」
       const prompt = `You are a handwriting reader. A child wrote some English letters on this canvas.
 
+
 YOUR ONLY JOB: Read and transcribe EXACTLY the letters you see. Nothing else.
+
 
 RULES:
 - Report ONLY the lowercase letters you can clearly identify.
@@ -1509,11 +155,13 @@ RULES:
 - Do NOT add letters that aren't there.
 - Respond with JSON only: {"letters": "the letters you see"}
 
+
 Examples:
 - If you see "h a m" written → {"letters": "ham"}
 - If you see "m k" with nothing in between → {"letters": "mk"}
 - If you see "b e r" → {"letters": "ber"}
 - If you see scribbles with no clear letters → {"letters": ""}`;
+
 
       try {
         const res = await fetch(
@@ -1533,9 +181,11 @@ Examples:
         const parsed = JSON.parse(clean);
         const seen = (parsed.letters || '').toLowerCase().trim();
 
+
         // Step 2: JS 比對 — 程式碼做精確字串比較
         const expected = target.toLowerCase().trim();
         const isCorrect = seen === expected;
+
 
         // 顯示 OCR 結果 Toast（底部橫條）
         const toast = document.createElement('div');
@@ -1551,6 +201,7 @@ Examples:
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2500);
 
+
         console.log(`OCR: 看到="${seen}" 正確="${expected}" → ${isCorrect ? '✅' : '❌'}`);
         return isCorrect;
       } catch(err) {
@@ -1559,97 +210,7 @@ Examples:
       }
     }
 
+
     function clearCanvas(c) { c.getContext('2d').clearRect(0, 0, c.width, c.height); }
     function resetAllCanvas() {
-      canvasIds.forEach(id => {
-        const c = document.getElementById(id);
-        if (c) { c.classList.remove('locked','error','checking'); clearCanvas(c); }
-      });
-      document.getElementById('celebration').classList.remove('show');
-      document.getElementById('next-word-btn').classList.remove('show');
-      initAllCanvas();
-    }
-    function checkAllComplete() {
-      if (document.querySelectorAll('.syl-box canvas.locked').length === canvasIds.length) {
-        document.getElementById('celebration').classList.add('show');
-        speakFullWord(LESSONS[currentWordIdx]);
-        if (currentWordIdx < LESSONS.length - 1)
-          document.getElementById('next-word-btn').classList.add('show');
-      }
-    }
-
-    // ══════════════════════════════════════════
-    // 初始化
-    // ══════════════════════════════════════════
-    // 預載語音：Google 聲音是雲端的，需要等 voiceschanged 才出現
-    synth.addEventListener('voiceschanged', findBestVoice);
-    findBestVoice(); // 首次嘗試
-
-    window.addEventListener('load', () => {
-      try { GEMINI_KEY = localStorage.getItem('phonics-gemini-key') || ''; } catch(e) {}
-
-      // 讀取上次使用的使用者
-      try { currentUser = localStorage.getItem('phonics-current-user') || 'iggy'; } catch(e) {}
-      document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active-user'));
-      const userBtn = document.getElementById('btn-' + currentUser);
-      if (userBtn) userBtn.classList.add('active-user');
-
-      // 載入該使用者的字單
-      loadUserLessons();
-
-      renderWordPills();
-      loadCurrentWord();
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
-      }
-    });
-  </script>
-
-<!-- ═══ Firebase 雲端同步 ═══ -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAdu9s_EkPr0obWjK6l6uLS-Oca3Lu2uaw",
-        authDomain: "screw-inventory.firebaseapp.com",
-        projectId: "screw-inventory",
-        storageBucket: "screw-inventory.firebasestorage.app",
-        messagingSenderId: "551217188475",
-        appId: "1:551217188475:web:42ecd142b3734eba5d5cde"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    async function syncToCloud(user, lessons) {
-        try {
-            const words = lessons.map(l => l.word).join('\n');
-            const data = JSON.stringify(lessons);
-            await db.collection('phonics-english-wordlists').doc(user).set({
-                words: words,
-                lessons: data,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log('☁️ ' + user + ' 英文字單已同步到雲端');
-        } catch(e) {
-            console.warn('雲端同步失敗:', e.message);
-        }
-    }
-
-    async function syncFromCloud(user) {
-        try {
-            const doc = await db.collection('phonics-english-wordlists').doc(user).get();
-            if (doc.exists && doc.data().lessons) {
-                const lessons = JSON.parse(doc.data().lessons);
-                console.log('☁️ ' + user + ' 英文字單已從雲端載入 (' + lessons.length + '字)');
-                return lessons;
-            }
-        } catch(e) {
-            console.warn('雲端讀取失敗:', e.message);
-        }
-        return null;
-    }
-</script>
-
-</body>
-</html>
+Use Control + Shift + m to toggle the tab key moving focus. Alternatively, use esc then tab to move to the next interactive element on the page.
