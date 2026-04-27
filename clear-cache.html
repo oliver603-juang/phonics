@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>清除 Phonics 快取</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #FFF3E0; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; text-align: center;
+  }
+  .card {
+    background: white; border-radius: 24px; padding: 30px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 360px; width: 100%;
+  }
+  .icon { font-size: 3rem; margin-bottom: 12px; }
+  .title { font-size: 1.3rem; font-weight: 700; color: #333; margin-bottom: 8px; }
+  .status { font-size: 1rem; color: #666; margin-bottom: 16px; line-height: 1.5; }
+  .status.done { color: #00b894; font-weight: 600; }
+  .status.error { color: #d63031; }
+  .spinner { width: 30px; height: 30px; border: 4px solid #eee; border-top: 4px solid #FF6B6B;
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 12px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .links { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .link-btn {
+    display: block; padding: 12px 20px; border-radius: 16px; text-decoration: none;
+    font-weight: 600; font-size: 0.95rem; transition: transform 0.1s;
+  }
+  .link-btn:active { transform: scale(0.97); }
+  .link-en { background: #FFD700; color: #333; }
+  .link-cn { background: #FF6B6B; color: white; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon" id="icon">🧹</div>
+  <div class="title">清除 Phonics 快取</div>
+  <div class="status" id="status">正在清除中...</div>
+  <div class="spinner" id="spinner"></div>
+  <div class="links" id="links" style="display:none;">
+    <a class="link-btn link-en" href="./index.html">🔤 開啟英文 Phonics</a>
+    <a class="link-btn link-cn" href="./chinese-writing.html">✏️ 開啟恐龍書法家</a>
+  </div>
+</div>
+<script>
+async function clearAll() {
+  const results = [];
+
+  // 1. 清除 phonics 相關 localStorage
+  try {
+    let count = 0;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.indexOf('phonics') !== -1 || k.indexOf('cw-') !== -1)) {
+        localStorage.removeItem(k);
+        count++;
+      }
+    }
+    results.push('localStorage: ' + count + ' 筆已清除');
+  } catch(e) {
+    results.push('localStorage: 失敗 (' + e.message + ')');
+  }
+
+  // 2. 註銷 Service Workers
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const r of regs) await r.unregister();
+    results.push('Service Worker: ' + regs.length + ' 個已註銷');
+  } catch(e) {
+    results.push('Service Worker: 失敗 (' + e.message + ')');
+  }
+
+  // 3. 清除 Cache Storage
+  try {
+    const keys = await caches.keys();
+    for (const k of keys) await caches.delete(k);
+    results.push('Cache: ' + keys.length + ' 個已清除');
+  } catch(e) {
+    results.push('Cache: 失敗 (' + e.message + ')');
+  }
+
+  // 顯示結果
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('icon').textContent = '✅';
+  document.getElementById('status').className = 'status done';
+  document.getElementById('status').innerHTML = '快取已全部清除！<br><small style="color:#999;">' + results.join('<br>') + '</small>';
+  document.getElementById('links').style.display = 'flex';
+}
+
+clearAll();
+</script>
+</body>
+</html>
