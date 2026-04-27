@@ -359,6 +359,50 @@
       cursor: pointer;
     }
 
+    /* ═══ 英雄榜 ═══ */
+    .trophy-btn {
+      width: 36px; height: 36px; border: none; border-radius: 50%;
+      background: white; font-size: 1.1rem; cursor: pointer;
+      box-shadow: var(--shadow); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lb-overlay {
+      display: none; position: fixed; inset: 0; z-index: 30001;
+      background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
+    }
+    .lb-overlay.open { display: flex; }
+    .lb-modal {
+      background: white; border-radius: 24px; padding: 20px;
+      max-width: 420px; width: 92%; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 16px 60px rgba(0,0,0,0.3); animation: popin 0.4s cubic-bezier(.175,.885,.32,1.275);
+    }
+    .lb-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 4px; }
+    .lb-tabs { display: flex; gap: 4px; justify-content: center; margin-bottom: 12px; }
+    .lb-tab {
+      padding: 5px 14px; border: none; border-radius: 16px;
+      font-family: inherit; font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; background: #eee; color: #888; transition: all 0.2s;
+    }
+    .lb-tab.active { background: var(--gold); color: #333; }
+    .lb-empty { text-align: center; color: #bbb; padding: 24px 0; font-size: 0.9rem; }
+    .lb-row {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+      border-radius: 12px; margin-bottom: 4px; font-size: 0.82rem;
+    }
+    .lb-row:nth-child(odd) { background: #fafafa; }
+    .lb-row .lb-rank { font-size: 1.1rem; font-weight: 700; min-width: 28px; text-align: center; }
+    .lb-row .lb-rank.gold { color: #FFD700; }
+    .lb-row .lb-rank.silver { color: #C0C0C0; }
+    .lb-row .lb-rank.bronze { color: #CD7F32; }
+    .lb-row .lb-user { font-weight: 600; }
+    .lb-row .lb-info { flex: 1; font-size: 0.7rem; color: #999; text-align: right; }
+    .lb-row .lb-avg { font-weight: 700; color: var(--color-er); min-width: 36px; text-align: right; }
+    .lb-row .lb-date { font-size: 0.65rem; color: #bbb; min-width: 50px; text-align: right; }
+    .lb-close {
+      display: block; margin: 8px auto 0; padding: 8px 28px; border: none; border-radius: 20px;
+      background: var(--gold); font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    }
+
     /* ═══ 設定 Modal ═══ */
     .modal-overlay {
       display: none; position: fixed; inset: 0; z-index: 10000;
@@ -549,6 +593,7 @@
       <button class="user-btn" id="btn-yoyo" onclick="switchUser('yoyo')">🐸 Yoyo</button>
     </div>
     <div class="word-pills" id="word-pills"></div>
+    <button class="trophy-btn" onclick="openLeaderboard()">🏆</button>
     <button class="gear-btn" onclick="openSettings()">⚙️</button>
   </div>
   <nav class="nav">
@@ -623,6 +668,20 @@
       </div>
       <div class="sm-detail" id="sm-detail"></div>
       <button class="sm-close" onclick="document.getElementById('session-modal').classList.remove('open')">👍 知道了！</button>
+    </div>
+  </div>
+
+  <!-- 英雄榜 Modal -->
+  <div class="lb-overlay" id="lb-modal">
+    <div class="lb-modal">
+      <div class="lb-title">🏆 英雄榜</div>
+      <div class="lb-tabs">
+        <button class="lb-tab active" onclick="loadLeaderboard('all')" id="lb-tab-all">全部</button>
+        <button class="lb-tab" onclick="loadLeaderboard('iggy')" id="lb-tab-iggy">🦊 Iggy</button>
+        <button class="lb-tab" onclick="loadLeaderboard('yoyo')" id="lb-tab-yoyo">🐸 Yoyo</button>
+      </div>
+      <div id="lb-list"><div class="lb-empty">載入中...</div></div>
+      <button class="lb-close" onclick="document.getElementById('lb-modal').classList.remove('open')">關閉</button>
     </div>
   </div>
 
@@ -832,6 +891,51 @@
       `).join('');
 
       document.getElementById('session-modal').classList.add('open');
+
+      // 🏆 上傳成績到英雄榜
+      if (typeof saveScoreToCloud === 'function') {
+        saveScoreToCloud(currentUser, {
+          avg, total: totalPts, maxPts,
+          words: ss.length,
+          totalTime,
+          stars: avg >= 90 ? 3 : avg >= 70 ? 2 : 1,
+          details: ss.map(s => ({ word: s.word, total: s.total }))
+        });
+      }
+    }
+
+    function openLeaderboard() {
+      document.getElementById('lb-modal').classList.add('open');
+      loadLeaderboard('all');
+    }
+    function loadLeaderboard(filter) {
+      // 更新 tab 樣式
+      document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('lb-tab-' + filter).classList.add('active');
+      // 載入資料
+      const list = document.getElementById('lb-list');
+      list.innerHTML = '<div class="lb-empty">載入中...</div>';
+      if (typeof fetchLeaderboard === 'function') {
+        fetchLeaderboard(filter).then(rows => {
+          if (!rows || !rows.length) { list.innerHTML = '<div class="lb-empty">還沒有紀錄，快去練習吧！</div>'; return; }
+          const medals = ['🥇','🥈','🥉'];
+          const rankCls = ['gold','silver','bronze'];
+          list.innerHTML = rows.map((r, i) => {
+            const d = r.date ? new Date(r.date.seconds ? r.date.seconds * 1000 : r.date) : null;
+            const dateStr = d ? `${d.getMonth()+1}/${d.getDate()}` : '';
+            const emoji = r.user === 'iggy' ? '🦊' : '🐸';
+            return `<div class="lb-row">
+              <span class="lb-rank ${rankCls[i] || ''}">${medals[i] || (i+1)}</span>
+              <span class="lb-user">${emoji} ${r.user}</span>
+              <span class="lb-info">${r.words}字 ${r.totalTime}s</span>
+              <span class="lb-avg">${r.avg}</span>
+              <span class="lb-date">${dateStr}</span>
+            </div>`;
+          }).join('');
+        });
+      } else {
+        list.innerHTML = '<div class="lb-empty">Firebase 尚未載入</div>';
+      }
     }
 
     function findBestVoice() {
@@ -1426,6 +1530,8 @@ JSON 範例：
               else el.style.color = ['#FF6347','#FFA500','#32CD32','#4A90E2','#9B59B6'][ci % 5];
             });
           });
+          // 🎯 自動跳入手寫階段
+          setTimeout(() => switchPhase(3), 1200);
         } else {
           rd.innerHTML = `你唸了 "${e.results[0][0].transcript}" 🧐 再試一次！`;
           rd.style.color = '#FF6347';
@@ -1852,6 +1958,42 @@ Examples:
             console.warn('雲端讀取失敗:', e.message);
         }
         return null;
+    }
+
+    // ═══ 英雄榜 Firebase 功能 ═══
+    async function saveScoreToCloud(user, score) {
+        try {
+            await db.collection('phonics-scores').add({
+                user: user,
+                avg: score.avg,
+                total: score.total,
+                maxPts: score.maxPts,
+                words: score.words,
+                totalTime: score.totalTime,
+                stars: score.stars,
+                details: JSON.stringify(score.details),
+                date: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('🏆 ' + user + ' 成績已上傳英雄榜: avg=' + score.avg);
+        } catch(e) {
+            console.warn('英雄榜上傳失敗:', e.message);
+        }
+    }
+
+    async function fetchLeaderboard(filter) {
+        try {
+            let query = db.collection('phonics-scores').orderBy('avg', 'desc').limit(20);
+            if (filter !== 'all') {
+                query = db.collection('phonics-scores')
+                    .where('user', '==', filter)
+                    .orderBy('avg', 'desc').limit(20);
+            }
+            const snap = await query.get();
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch(e) {
+            console.warn('英雄榜讀取失敗:', e.message);
+            return [];
+        }
     }
 </script>
 
