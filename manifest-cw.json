@@ -1,0 +1,22 @@
+{
+  "name": "恐龍書法家",
+  "short_name": "書法家",
+  "description": "中文書法描紅練習",
+  "start_url": "./chinese-writing.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF3E0",
+  "theme_color": "#FFF3E0",
+  "icons": [
+    {
+      "src": "icon-cw-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-cw-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

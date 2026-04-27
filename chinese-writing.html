@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="恐龍書法家">
+    <meta name="theme-color" content="#FFF3E0">
+    <link rel="manifest" href="manifest-cw.json">
+    <link rel="apple-touch-icon" href="icon-cw-192.png">
     <title>恐龍書法家</title>
     <style>
         /* UI 字體仍從 Google Fonts 載入 */
@@ -869,6 +875,11 @@
             initGame();
         });
         if (!GEMINI_KEY) setTimeout(showNoKeyWarning, 1000);
+
+        // PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
     };
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
