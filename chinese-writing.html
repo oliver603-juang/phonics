@@ -254,6 +254,18 @@
             <input type="password" id="gemini-key-input" placeholder="AIza...">
             <div class="hint-text">免費申請：<a href="https://aistudio.google.com/apikey" target="_blank" style="color:#4A90E2">Google AI Studio</a></div>
         </div>
+        <div class="section">
+            <label>☁️ 跨裝置同步字單</label>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+                <button class="modal-btn save" onclick="exportShareLink()" style="flex:1; font-size:0.85rem;">📤 產生同步連結</button>
+                <button class="modal-btn cancel" onclick="exportText()" style="flex:1; font-size:0.85rem;">📋 複製文字</button>
+            </div>
+            <div id="share-result" style="margin-top:8px; display:none;">
+                <input type="text" id="share-url" readonly style="width:100%; padding:8px 12px; border:2px solid #00b894; border-radius:12px; font-size:0.8rem; background:#e8f8f5;">
+                <div class="hint-text" style="color:#00b894; font-weight:600;">✅ 連結已複製！在其他裝置打開就能載入字單。</div>
+            </div>
+            <div class="hint-text">產生一個包含兩人字單的連結，在其他裝置的瀏覽器打開即可自動匯入。也可用 LINE 傳送給家人。</div>
+        </div>
         <div class="modal-btns">
             <button class="modal-btn cancel" onclick="closeSettings()">取消</button>
             <button class="modal-btn save" onclick="saveSettings()">✅ 儲存</button>
@@ -351,12 +363,30 @@
     }
 
     function loadUserData() {
+        // 先從 localStorage 載入（瞬間）
         const saved = localStorage.getItem('cw-chars-' + currentUser);
         if (saved) {
             levels = JSON.parse(saved);
         } else {
             const chars = DEFAULT_CHARS[currentUser] || DEFAULT_CHARS.iggy;
             levels = chars.map(c => ({ char: c, hint: c }));
+        }
+
+        // ☁️ 背景從雲端同步（如果雲端有較新的資料就更新）
+        if (typeof syncFromCloud === 'function') {
+            syncFromCloud(currentUser).then(cloudData => {
+                if (cloudData && cloudData.length > 0) {
+                    const localChars = levels.map(l => l.char).join('');
+                    const cloudChars = cloudData.map(l => l.char).join('');
+                    if (cloudChars !== localChars) {
+                        levels = cloudData;
+                        localStorage.setItem('cw-chars-' + currentUser, JSON.stringify(cloudData));
+                        console.log('☁️ 雲端字單已同步到本機');
+                        renderCharPills();
+                        loadLevel();
+                    }
+                }
+            });
         }
     }
 
@@ -398,17 +428,17 @@
         const raw = document.getElementById('chars-input').value.trim();
         if (raw) {
             const chars = raw.split('\n').map(l => l.trim()).filter(Boolean);
-            // 拆詞成單字
             const expanded = [];
             chars.forEach(c => {
                 if (c.length > 1) {
-                    // 多字詞：每個字獨立一關
                     for (const ch of c) expanded.push({ char: ch, hint: c });
                 } else {
                     expanded.push({ char: c, hint: c });
                 }
             });
             localStorage.setItem('cw-chars-' + settingsTab, JSON.stringify(expanded));
+            // ☁️ 同步到 Firebase
+            if (typeof syncToCloud === 'function') syncToCloud(settingsTab, expanded);
         }
 
         closeSettings();
@@ -657,9 +687,77 @@
     }
 
     // ══════════════════════════════════════════
+    // 跨裝置同步（URL hash）
+    // ══════════════════════════════════════════
+    function exportShareLink() {
+        // 讀取兩人的字單
+        const iggyData = localStorage.getItem('cw-chars-iggy');
+        const yoyoData = localStorage.getItem('cw-chars-yoyo');
+        const iggyChars = iggyData ? JSON.parse(iggyData).map(l => l.char).join('') : DEFAULT_CHARS.iggy.join('');
+        const yoyoChars = yoyoData ? JSON.parse(yoyoData).map(l => l.char).join('') : DEFAULT_CHARS.yoyo.join('');
+
+        // 編碼到 URL hash
+        const data = encodeURIComponent(JSON.stringify({ i: iggyChars, y: yoyoChars }));
+        const baseUrl = location.href.split('#')[0].split('?')[0];
+        const shareUrl = baseUrl + '?sync=' + data;
+
+        // 顯示並複製
+        const input = document.getElementById('share-url');
+        input.value = shareUrl;
+        document.getElementById('share-result').style.display = 'block';
+        input.select();
+        navigator.clipboard.writeText(shareUrl).catch(() => {
+            // fallback: 選中讓使用者手動複製
+        });
+    }
+
+    function exportText() {
+        const iggyData = localStorage.getItem('cw-chars-iggy');
+        const yoyoData = localStorage.getItem('cw-chars-yoyo');
+        const iggyChars = iggyData ? JSON.parse(iggyData).map(l => l.char).join('\n') : DEFAULT_CHARS.iggy.join('\n');
+        const yoyoChars = yoyoData ? JSON.parse(yoyoData).map(l => l.char).join('\n') : DEFAULT_CHARS.yoyo.join('\n');
+        const text = `🦊 Iggy 字單：\n${iggyChars}\n\n🐸 Yoyo 字單：\n${yoyoChars}`;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('✅ 字單已複製到剪貼簿！');
+        }).catch(() => {
+            prompt('請手動複製：', text);
+        });
+    }
+
+    function importFromUrl() {
+        const params = new URLSearchParams(location.search);
+        const syncData = params.get('sync');
+        if (!syncData) return false;
+
+        try {
+            const data = JSON.parse(decodeURIComponent(syncData));
+            if (data.i) {
+                const chars = [...data.i].map(c => ({ char: c, hint: c }));
+                localStorage.setItem('cw-chars-iggy', JSON.stringify(chars));
+            }
+            if (data.y) {
+                const chars = [...data.y].map(c => ({ char: c, hint: c }));
+                localStorage.setItem('cw-chars-yoyo', JSON.stringify(chars));
+            }
+            // 清除 URL 參數（避免重複匯入）
+            history.replaceState(null, '', location.pathname);
+            return true;
+        } catch (e) {
+            console.error('Sync import error:', e);
+            return false;
+        }
+    }
+
+    // ══════════════════════════════════════════
     // 初始化
     // ══════════════════════════════════════════
     window.onload = () => {
+        // 檢查 URL 是否有同步資料
+        const imported = importFromUrl();
+        if (imported) {
+            alert('✅ 字單已從連結匯入！');
+        }
+
         GEMINI_KEY = localStorage.getItem('cw-gemini-key') || '';
         currentUser = localStorage.getItem('cw-current-user') || 'iggy';
         currentFont = localStorage.getItem('cw-font') || 'kai';
@@ -675,5 +773,62 @@
         if (!GEMINI_KEY) setTimeout(showNoKeyWarning, 1000);
     };
 </script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+    // ══════════════════════════════════════════
+    // Firebase 雲端同步
+    // ══════════════════════════════════════════
+    const firebaseConfig = {
+        apiKey: "AIzaSyAdu9s_EkPr0obWjK6l6uLS-Oca3Lu2uaw",
+        authDomain: "screw-inventory.firebaseapp.com",
+        projectId: "screw-inventory",
+        storageBucket: "screw-inventory.firebasestorage.app",
+        messagingSenderId: "551217188475",
+        appId: "1:551217188475:web:42ecd142b3734eba5d5cde"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 上傳字單到 Firestore
+    async function syncToCloud(user, charData) {
+        try {
+            const chars = charData.map(l => l.char).join('');
+            await db.collection('phonics-wordlists').doc(user).set({
+                chars: chars,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('☁️ ' + user + ' 字單已同步到雲端');
+        } catch(e) {
+            console.warn('雲端同步失敗:', e.message);
+        }
+    }
+
+    // 從 Firestore 下載字單
+    async function syncFromCloud(user) {
+        try {
+            const doc = await db.collection('phonics-wordlists').doc(user).get();
+            if (doc.exists) {
+                const chars = [...doc.data().chars];
+                const levels = chars.map(c => ({ char: c, hint: c }));
+                console.log('☁️ ' + user + ' 字單已從雲端載入 (' + chars.length + '字)');
+                return levels;
+            }
+        } catch(e) {
+            console.warn('雲端讀取失敗:', e.message);
+        }
+        return null;
+    }
+
+    // 即時監聽雲端變更（其他裝置更新時自動同步）
+    function listenCloudChanges() {
+        ['iggy', 'yoyo'].forEach(user => {
+            db.collection('phonics-wordlists').doc(user).onSnapshot(doc => {
+                if (!doc.exists || !doc.metadata.hasPendingWrites) return;
+            }, err => console.warn('監聽失敗:', err.message));
+        });
+    }
+</script>
+
 </body>
 </html>
