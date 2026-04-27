@@ -259,18 +259,22 @@
 
     /* ═══ OCR 結果 Toast ═══ */
     .ocr-toast {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      z-index: 20000; padding: 20px 28px;
-      background: white; border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 20000; padding: 12px 24px;
+      background: white; border-radius: 16px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
       text-align: center; font-family: 'Fredoka', sans-serif;
-      animation: popin 0.3s ease; min-width: 260px;
+      animation: slideUp 0.3s ease; min-width: 240px;
+      display: flex; align-items: center; gap: 12px;
     }
-    .ocr-toast .ocr-label { font-size: 0.8rem; color: #999; margin-bottom: 4px; }
-    .ocr-toast .ocr-seen { font-size: 2.5rem; font-weight: 800; color: #333; }
-    .ocr-toast .ocr-vs { font-size: 0.85rem; color: #aaa; margin: 6px 0; }
-    .ocr-toast .ocr-expected { font-size: 1.5rem; font-weight: 700; color: #888; }
-    .ocr-toast .ocr-result { font-size: 1.2rem; font-weight: 700; margin-top: 8px; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    .ocr-toast .ocr-seen { font-size: 1.5rem; font-weight: 800; color: #333; }
+    .ocr-toast .ocr-arrow { font-size: 1rem; color: #aaa; }
+    .ocr-toast .ocr-expected { font-size: 1.2rem; font-weight: 700; color: #888; }
+    .ocr-toast .ocr-result { font-size: 1.1rem; font-weight: 700; }
     .ocr-toast .ocr-ok { color: #32CD32; }
     .ocr-toast .ocr-ng { color: #FF6347; }
 
@@ -478,7 +482,6 @@
         </div>
       </div>
       <div class="modal-btns">
-        <button class="modal-btn reset-default" onclick="resetToDefault()">🔄 恢復預設字單</button>
         <button class="modal-btn cancel" onclick="closeSettings()">取消</button>
         <button class="modal-btn save" onclick="saveSettings()">✅ 儲存</button>
       </div>
@@ -929,6 +932,7 @@ JSON 範例：
     }
 
     function loadUserLessons() {
+      // 先從 localStorage 載入（瞬間）
       try {
         const saved = localStorage.getItem('phonics-' + currentUser + '-words');
         if (saved) {
@@ -939,6 +943,24 @@ JSON 範例：
       } catch(e) {}
       LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
       usingDefaults = true;
+
+      // ☁️ 背景從雲端同步
+      if (typeof syncFromCloud === 'function') {
+        syncFromCloud(currentUser).then(cloudLessons => {
+          if (cloudLessons && cloudLessons.length > 0) {
+            const localWords = LESSONS.map(l => l.word).join(',');
+            const cloudWords = cloudLessons.map(l => l.word).join(',');
+            if (cloudWords !== localWords) {
+              LESSONS = cloudLessons;
+              usingDefaults = false;
+              try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(cloudLessons)); } catch(e) {}
+              console.log('☁️ 雲端字單已同步到本機');
+              renderWordPills();
+              loadCurrentWord();
+            }
+          }
+        });
+      }
     }
 
     function openSettings() {
@@ -952,16 +974,6 @@ JSON 範例：
       document.getElementById('gemini-key-input').value = GEMINI_KEY;
     }
     function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
-
-    function resetToDefault() {
-      LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
-      usingDefaults = true;
-      try { localStorage.removeItem('phonics-' + currentUser + '-words'); } catch(e) {}
-      closeSettings();
-      currentWordIdx = 0;
-      renderWordPills();
-      loadCurrentWord();
-    }
 
     async function saveSettings() {
       const raw = document.getElementById('word-input').value.trim();
@@ -1000,6 +1012,8 @@ JSON 範例：
 
       usingDefaults = false;
       try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+      // ☁️ 同步到 Firebase
+      if (typeof syncToCloud === 'function') syncToCloud(currentUser, LESSONS);
 
       currentWordIdx = 0;
       renderWordPills();
@@ -1523,17 +1537,16 @@ Examples:
         const expected = target.toLowerCase().trim();
         const isCorrect = seen === expected;
 
-        // 顯示 OCR 結果 Toast
+        // 顯示 OCR 結果 Toast（底部橫條）
         const toast = document.createElement('div');
         toast.className = 'ocr-toast';
         toast.innerHTML = `
-          <div class="ocr-label">AI 看到：</div>
-          <div class="ocr-seen">${seen || '（空白）'}</div>
-          <div class="ocr-vs">VS 正確答案</div>
-          <div class="ocr-expected">${expected}</div>
-          <div class="ocr-result ${isCorrect ? 'ocr-ok' : 'ocr-ng'}">
-            ${isCorrect ? '✅ 正確！' : '❌ 不符合'}
-          </div>
+          <span class="ocr-seen">${seen || '？'}</span>
+          <span class="ocr-arrow">→</span>
+          <span class="ocr-expected">${expected}</span>
+          <span class="ocr-result ${isCorrect ? 'ocr-ok' : 'ocr-ng'}">
+            ${isCorrect ? '✅' : '❌'}
+          </span>
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2500);
@@ -1592,5 +1605,51 @@ Examples:
       }
     });
   </script>
+
+<!-- ═══ Firebase 雲端同步 ═══ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAdu9s_EkPr0obWjK6l6uLS-Oca3Lu2uaw",
+        authDomain: "screw-inventory.firebaseapp.com",
+        projectId: "screw-inventory",
+        storageBucket: "screw-inventory.firebasestorage.app",
+        messagingSenderId: "551217188475",
+        appId: "1:551217188475:web:42ecd142b3734eba5d5cde"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function syncToCloud(user, lessons) {
+        try {
+            const words = lessons.map(l => l.word).join('\n');
+            const data = JSON.stringify(lessons);
+            await db.collection('phonics-english-wordlists').doc(user).set({
+                words: words,
+                lessons: data,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('☁️ ' + user + ' 英文字單已同步到雲端');
+        } catch(e) {
+            console.warn('雲端同步失敗:', e.message);
+        }
+    }
+
+    async function syncFromCloud(user) {
+        try {
+            const doc = await db.collection('phonics-english-wordlists').doc(user).get();
+            if (doc.exists && doc.data().lessons) {
+                const lessons = JSON.parse(doc.data().lessons);
+                console.log('☁️ ' + user + ' 英文字單已從雲端載入 (' + lessons.length + '字)');
+                return lessons;
+            }
+        } catch(e) {
+            console.warn('雲端讀取失敗:', e.message);
+        }
+        return null;
+    }
+</script>
+
 </body>
 </html>
