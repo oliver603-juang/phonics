@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#FFD700">
+  <meta name="theme-color" content="#1a1a2e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Phonics">
@@ -256,45 +256,6 @@
       padding:5px 12px; border:none; border-radius:16px;
       background:#eee; color:#888; cursor:pointer;
     }
-
-    /* ═══ OCR 結果 Toast ═══ */
-    .ocr-toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 20000; padding: 12px 24px;
-      background: white; border-radius: 16px;
-      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
-      text-align: center; font-family: 'Fredoka', sans-serif;
-      animation: slideUp 0.3s ease; min-width: 240px;
-      display: flex; align-items: center; gap: 12px;
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-    .ocr-toast .ocr-seen { font-size: 1.5rem; font-weight: 800; color: #333; }
-    .ocr-toast .ocr-arrow { font-size: 1rem; color: #aaa; }
-    .ocr-toast .ocr-expected { font-size: 1.2rem; font-weight: 700; color: #888; }
-    .ocr-toast .ocr-result { font-size: 1.1rem; font-weight: 700; }
-    .ocr-toast .ocr-ok { color: #32CD32; }
-    .ocr-toast .ocr-ng { color: #FF6347; }
-
-    /* ═══ 無 Key 警告 ═══ */
-    .no-key-warning {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      z-index: 20000; padding: 24px 30px;
-      background: #FFF3CD; border: 2px solid #FFD700; border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      text-align: center; font-family: 'Fredoka', sans-serif;
-      animation: popin 0.3s ease; max-width: 320px;
-    }
-    .no-key-warning .nk-icon { font-size: 2.5rem; margin-bottom: 8px; }
-    .no-key-warning .nk-title { font-size: 1.1rem; font-weight: 700; color: #856404; margin-bottom: 8px; }
-    .no-key-warning .nk-text { font-size: 0.85rem; color: #856404; line-height: 1.5; margin-bottom: 12px; }
-    .no-key-warning .nk-btn {
-      padding: 8px 20px; border: none; border-radius: 16px;
-      background: var(--gold); color: #333; font-family: inherit;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer;
-    }
     .next-word-btn {
       margin-top: 6px; padding: 8px 20px;
       font-family: inherit; font-size: .95rem; font-weight: 700;
@@ -304,104 +265,6 @@
       animation: popin 0.4s ease; display: none;
     }
     .next-word-btn.show { display: inline-block; }
-
-    /* ═══ 計分系統 ═══ */
-    .score-badge {
-      display: inline-block; font-size: 0.6rem; font-weight: 700;
-      background: var(--gold); color: #333; border-radius: 8px;
-      padding: 1px 5px; margin-left: 4px; vertical-align: middle;
-    }
-    .pill.done .score-badge { background: rgba(255,255,255,0.35); color: white; }
-    .word-score-toast {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      z-index: 20001; padding: 24px 32px; background: white; border-radius: 20px;
-      box-shadow: 0 12px 48px rgba(0,0,0,0.25); text-align: center;
-      font-family: 'Fredoka', sans-serif; animation: popin 0.4s cubic-bezier(.175,.885,.32,1.275);
-      min-width: 260px;
-    }
-    .word-score-toast .ws-word { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
-    .word-score-toast .ws-total { font-size: 2.8rem; font-weight: 700; color: var(--color-er); }
-    .word-score-toast .ws-total span { font-size: 1rem; color: #aaa; }
-    .word-score-toast .ws-bar { display: flex; gap: 6px; justify-content: center; margin: 10px 0; font-size: 0.78rem; color: #888; }
-    .word-score-toast .ws-item { background: #f5f5f5; padding: 4px 10px; border-radius: 10px; }
-    .word-score-toast .ws-stars { font-size: 1.8rem; margin-top: 4px; }
-
-    .session-modal-overlay {
-      display: none; position: fixed; inset: 0; z-index: 30000;
-      background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
-    }
-    .session-modal-overlay.open { display: flex; }
-    .session-modal {
-      background: white; border-radius: 24px; padding: 24px;
-      max-width: 420px; width: 92%; max-height: 85vh; overflow-y: auto;
-      box-shadow: 0 16px 60px rgba(0,0,0,0.3); animation: popin 0.4s cubic-bezier(.175,.885,.32,1.275);
-    }
-    .sm-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 12px; }
-    .sm-summary { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
-    .sm-card {
-      flex: 1; background: #f9f9f9; border-radius: 14px; padding: 10px 8px; text-align: center;
-    }
-    .sm-card .sm-num { font-size: 1.6rem; font-weight: 700; color: var(--color-er); }
-    .sm-card .sm-label { font-size: 0.7rem; color: #999; margin-top: 2px; }
-    .sm-stars { text-align: center; font-size: 2.5rem; margin-bottom: 12px; }
-    .sm-detail { margin-bottom: 14px; }
-    .sm-row {
-      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-      border-radius: 10px; margin-bottom: 4px; font-size: 0.82rem;
-    }
-    .sm-row:nth-child(odd) { background: #fafafa; }
-    .sm-row .sm-word { flex: 1; font-weight: 600; }
-    .sm-row .sm-pts { font-weight: 700; color: var(--color-er); min-width: 40px; text-align: right; }
-    .sm-row .sm-mini { font-size: 0.65rem; color: #aaa; min-width: 90px; }
-    .sm-close {
-      display: block; margin: 0 auto; padding: 10px 32px; border: none; border-radius: 24px;
-      background: var(--gold); font-family: inherit; font-size: 1rem; font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* ═══ 英雄榜 ═══ */
-    .trophy-btn {
-      width: 36px; height: 36px; border: none; border-radius: 50%;
-      background: white; font-size: 1.1rem; cursor: pointer;
-      box-shadow: var(--shadow); flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .lb-overlay {
-      display: none; position: fixed; inset: 0; z-index: 30001;
-      background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
-    }
-    .lb-overlay.open { display: flex; }
-    .lb-modal {
-      background: white; border-radius: 24px; padding: 20px;
-      max-width: 420px; width: 92%; max-height: 85vh; overflow-y: auto;
-      box-shadow: 0 16px 60px rgba(0,0,0,0.3); animation: popin 0.4s cubic-bezier(.175,.885,.32,1.275);
-    }
-    .lb-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 4px; }
-    .lb-tabs { display: flex; gap: 4px; justify-content: center; margin-bottom: 12px; }
-    .lb-tab {
-      padding: 5px 14px; border: none; border-radius: 16px;
-      font-family: inherit; font-size: 0.75rem; font-weight: 600;
-      cursor: pointer; background: #eee; color: #888; transition: all 0.2s;
-    }
-    .lb-tab.active { background: var(--gold); color: #333; }
-    .lb-empty { text-align: center; color: #bbb; padding: 24px 0; font-size: 0.9rem; }
-    .lb-row {
-      display: flex; align-items: center; gap: 8px; padding: 10px 12px;
-      border-radius: 12px; margin-bottom: 4px; font-size: 0.82rem;
-    }
-    .lb-row:nth-child(odd) { background: #fafafa; }
-    .lb-row .lb-rank { font-size: 1.1rem; font-weight: 700; min-width: 28px; text-align: center; }
-    .lb-row .lb-rank.gold { color: #FFD700; }
-    .lb-row .lb-rank.silver { color: #C0C0C0; }
-    .lb-row .lb-rank.bronze { color: #CD7F32; }
-    .lb-row .lb-user { font-weight: 600; }
-    .lb-row .lb-info { flex: 1; font-size: 0.7rem; color: #999; text-align: right; }
-    .lb-row .lb-avg { font-weight: 700; color: var(--color-er); min-width: 36px; text-align: right; }
-    .lb-row .lb-date { font-size: 0.65rem; color: #bbb; min-width: 50px; text-align: right; }
-    .lb-close {
-      display: block; margin: 8px auto 0; padding: 8px 28px; border: none; border-radius: 20px;
-      background: var(--gold); font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
-    }
 
     /* ═══ 設定 Modal ═══ */
     .modal-overlay {
@@ -505,33 +368,6 @@
       background: #E8F4FD; color: #4A90E2; font-family: inherit;
       font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-right: 8px;
     }
-    .root-modal .word-family {
-      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .root-modal .family-word {
-      padding: 6px 14px; background: #FFF3E0; border-radius: 16px;
-      font-size: 0.9rem; font-weight: 600; color: var(--color-ur);
-      cursor: pointer; transition: transform 0.1s;
-    }
-    .root-modal .family-word:active { transform: scale(0.95); }
-    .root-modal .family-label {
-      font-size: 0.75rem; color: #aaa; margin-bottom: 6px;
-    }
-    .root-modal .silly-sentence {
-      padding: 12px; background: #E3F2FD; border-radius: 14px;
-      margin-bottom: 6px; cursor: pointer; transition: transform 0.1s;
-    }
-    .root-modal .silly-sentence:active { transform: scale(0.98); }
-    .root-modal .silly-en {
-      font-size: 1rem; font-weight: 600; color: #1565C0; margin-bottom: 4px;
-    }
-    .root-modal .silly-tw {
-      font-size: 0.85rem; color: #666;
-    }
-    .root-modal .silly-hint {
-      font-size: 0.65rem; color: #aaa; margin-bottom: 10px;
-    }
 
     /* ═══ 載入字單 Overlay ═══ */
     .fetch-overlay {
@@ -551,6 +387,118 @@
       transition: width 0.3s ease;
     }
     .fetch-overlay .fo-status { font-size: 0.85rem; color: #999; }
+    /* ═══ DARK THEME (matching Nihongo) ═══ */
+    body { background: #0f0f1a !important; color: #e8e8f0 !important; }
+    .top-bar { background: #0f0f1a; }
+    .pill { background: #16213e; color: #8888aa; border: 1px solid #2a2a4a; box-shadow: none; }
+    .pill.active { background: #e94560; color: white; border-color: #e94560; }
+    .pill.done { background: #1B813E; }
+    .gear-btn, .trophy-btn { background: #16213e; color: #8888aa; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .nav { background: #16213e; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .nav-btn { color: #8888aa; }
+    .nav-btn.active { background: #1a1a2e; color: #e8e8f0; }
+    .user-btn { background: #16213e; color: #8888aa; border-color: #2a2a4a; box-shadow: none; }
+    .user-btn.active-user { border-color: var(--gold); color: #e8e8f0; background: #1a1a2e; }
+    .btn-primary { background: var(--gold); color: #1a1a2e; }
+    .chunk-letter { color: #555577 !important; }
+    .phonics-note { background: #1a1a2e; color: #8888aa; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .speech-result { color: #8888aa; }
+    .tts-label { color: #555577; }
+    .tts-edit-input { background: #16213e; border-color: var(--gold); color: #e8e8f0; }
+    .modal { background: #1a1a2e; color: #e8e8f0; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .modal h2 { color: #e8e8f0; }
+    .modal label { color: #8888aa; }
+    .modal textarea, .modal input[type="password"] { background: #16213e; color: #e8e8f0; border-color: #2a2a4a; }
+    .modal textarea:focus, .modal input:focus { border-color: var(--gold); }
+    .modal .hint-text { color: #555577; }
+    .modal-btn.cancel { background: #16213e; color: #8888aa; }
+    .modal-btn.save { background: #e94560; color: white; }
+    .modal-overlay { background: rgba(0,0,0,0.7); }
+    a { color: #e94560; }
+    .icon-btn.speak { background: #16213e; }
+    .icon-btn.check { background: var(--gold); }
+    .icon-btn.erase { background: #2a1a1a; }
+    .reset-btn { background: #16213e; color: #8888aa; }
+    .celebration .msg { color: #00e676; }
+    .next-word-btn { background: #e94560; box-shadow: 0 4px 12px rgba(233,69,96,0.3); }
+    .ocr-toast { background: #1a1a2e; color: #e8e8f0; box-shadow: 0 6px 30px rgba(0,0,0,0.5); }
+    .ocr-toast .ocr-seen { color: #e8e8f0; }
+    .ocr-toast .ocr-arrow { color: #555577; }
+    .ocr-toast .ocr-expected { color: #8888aa; }
+    .no-key-warning { background: #1a1a2e; border-color: var(--gold); }
+    .no-key-warning .nk-title, .no-key-warning .nk-text { color: #e8e8f0; }
+    .word-score-toast { background: #1a1a2e; box-shadow: 0 12px 48px rgba(0,0,0,0.5); }
+    .word-score-toast .ws-word { color: #e8e8f0; }
+    .word-score-toast .ws-bar .ws-item { background: #16213e; color: #8888aa; }
+    .session-modal-overlay { background: rgba(0,0,0,0.7); }
+    .session-modal { background: #1a1a2e; color: #e8e8f0; }
+    .sm-card { background: #16213e; }
+    .sm-card .sm-label { color: #8888aa; }
+    .sm-row:nth-child(odd) { background: #16213e; }
+    .sm-close { background: var(--gold); color: #1a1a2e; }
+    .lb-overlay { background: rgba(0,0,0,0.7); }
+    .lb-modal { background: #1a1a2e; color: #e8e8f0; }
+    .lb-tab { background: #16213e; color: #8888aa; }
+    .lb-tab.active { background: var(--gold); color: #1a1a2e; }
+    .lb-row:nth-child(odd) { background: #16213e; }
+    .lb-empty { color: #555577; }
+    .lb-close { background: var(--gold); color: #1a1a2e; }
+    .root-modal { background: #1a1a2e; }
+    .root-modal .root-title { color: #e8e8f0; }
+    .root-modal .root-story { background: #16213e; color: #8888aa; }
+    .root-modal .root-close { background: var(--gold); color: #1a1a2e; }
+    .root-modal .root-listen { background: #16213e; color: #e94560; }
+    .root-modal .family-word { background: #16213e; color: var(--color-ur); }
+    .root-modal .silly-sentence { background: #16213e; }
+    .root-modal .silly-en { color: #e94560; }
+    .root-modal .silly-tw { color: #8888aa; }
+    .root-modal .silly-hint { color: #555577; }
+    .fetch-overlay { background: rgba(15,15,26,0.95) !important; color: #e8e8f0; }
+    .fetch-overlay .fo-title { color: #e8e8f0; }
+    .fetch-overlay .fo-bar { background: #16213e; }
+    .fetch-overlay .fo-fill { background: linear-gradient(90deg, #e94560, #f5c842); }
+    .fetch-overlay .fo-status { color: #8888aa; }
+    .score-badge { background: var(--gold); color: #1a1a2e; }
+    .pill.done .score-badge { background: rgba(255,255,255,0.3); color: white; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0f0f1a; }
+    ::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 2px; }
+
+    /* ═══ PHASE 3: MORANDI TILES (remove landscape lock) ═══ */
+    #rotate-prompt { display: none !important; }
+    #phase3 .p3-layout { display: flex !important; flex-direction: column !important; height: 100% !important; gap: 6px !important; padding: 6px !important; }
+    #phase3 .syl-col { display: flex !important; flex-direction: row !important; gap: 6px !important; flex: 1 !important; }
+    #phase3 .syl-box {
+      position: relative !important; background: #8FA88B !important;
+      border: none !important; border-radius: 10px !important;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important;
+      overflow: hidden !important; flex: 1 !important;
+    }
+    #phase3 .syl-box:nth-child(1) { background: #8FA88B !important; }
+    #phase3 .syl-col:nth-child(2) .syl-box { background: #7B9DAB !important; }
+    #phase3 .syl-col:nth-child(3) .syl-box { background: #C4877A !important; }
+    #phase3 .syl-col:nth-child(4) .syl-box { background: #C9B88C !important; }
+    #phase3 .syl-box .hint {
+      position: absolute !important; inset: 0 !important;
+      display: flex !important; align-items: center !important; justify-content: center !important;
+      z-index: 1 !important; pointer-events: none !important;
+      opacity: 0.25 !important; gap: 1px !important;
+      font-size: clamp(3rem, 10vw, 6rem) !important;
+    }
+    #phase3 .hint-letter {
+      color: #3C4043 !important; font-weight: 800 !important;
+    }
+    #phase3 .syl-box canvas {
+      position: absolute !important; inset: 0 !important;
+      width: 100% !important; height: 100% !important;
+      z-index: 2 !important; background: transparent !important;
+      border: none !important; border-radius: 10px !important;
+    }
+    #phase3 .syl-box canvas.locked { background: rgba(0,0,0,0.1) !important; border: 3px solid #00e676 !important; }
+    #phase3 .syl-box canvas.checking { border: 3px solid var(--gold) !important; }
+    #phase3 .syl-box canvas.error { border: 3px solid #FF6347 !important; }
+    #phase3 .syl-btns { z-index: 5; }
+    #phase3 .p3-footer { flex-shrink: 0 !important; }
   </style>
 </head>
 <body>
@@ -579,11 +527,18 @@
           已分析過的字會存在裝置上，不重複呼叫。
         </div>
       </div>
+      <div class="section" style="padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+        <label>🧹 維護工具</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="modal-btn cancel" onclick="clearCacheReload()" style="flex:1;text-align:center;">🔄 清除快取重載</button>
+        </div>
+        <div class="hint-text">更新程式碼後使用此按鈕載入最新版本</div>
+      </div>
       <div class="modal-btns">
+        <button class="modal-btn reset-default" onclick="resetToDefault()">🔄 恢復預設字單</button>
         <button class="modal-btn cancel" onclick="closeSettings()">取消</button>
         <button class="modal-btn save" onclick="saveSettings()">✅ 儲存</button>
       </div>
-      <div style="text-align:center; margin-top:8px; font-size:0.6rem; color:#ccc;" id="version-display"></div>
     </div>
   </div>
 
@@ -594,7 +549,6 @@
       <button class="user-btn" id="btn-yoyo" onclick="switchUser('yoyo')">🐸 Yoyo</button>
     </div>
     <div class="word-pills" id="word-pills"></div>
-    <button class="trophy-btn" onclick="openLeaderboard()">🏆</button>
     <button class="gear-btn" onclick="openSettings()">⚙️</button>
   </div>
   <nav class="nav">
@@ -637,14 +591,7 @@
       <div class="root-emoji" id="root-emoji">🏰</div>
       <div class="root-title" id="root-title"></div>
       <div class="root-story" id="root-story"></div>
-      <div class="family-label" id="family-label"></div>
-      <div class="word-family" id="word-family"></div>
-      <div class="silly-sentence" id="silly-box" onclick="playSillySentence()" style="display:none">
-        <div class="silly-en" id="silly-en"></div>
-        <div class="silly-tw" id="silly-tw"></div>
-      </div>
-      <div class="silly-hint" id="silly-hint"></div>
-      <button class="root-listen" onclick="readRootStory()">🔊 唸故事</button>
+      <button class="root-listen" onclick="readRootStory()">🔊 唸給我聽</button>
       <button class="root-close" onclick="closeRootModal()">知道了！</button>
     </div>
   </div>
@@ -655,35 +602,6 @@
     <div class="fo-word" id="fo-word"></div>
     <div class="fo-bar"><div class="fo-fill" id="fo-fill" style="width:0%"></div></div>
     <div class="fo-status" id="fo-status">準備中...</div>
-  </div>
-
-  <!-- 計分：練習總結 Modal -->
-  <div class="session-modal-overlay" id="session-modal">
-    <div class="session-modal">
-      <div class="sm-title" id="sm-title">🏆 練習完成！</div>
-      <div class="sm-stars" id="sm-stars"></div>
-      <div class="sm-summary">
-        <div class="sm-card"><div class="sm-num" id="sm-total">0</div><div class="sm-label">總分</div></div>
-        <div class="sm-card"><div class="sm-num" id="sm-avg">0</div><div class="sm-label">平均</div></div>
-        <div class="sm-card"><div class="sm-num" id="sm-time">0s</div><div class="sm-label">總耗時</div></div>
-      </div>
-      <div class="sm-detail" id="sm-detail"></div>
-      <button class="sm-close" onclick="document.getElementById('session-modal').classList.remove('open')">👍 知道了！</button>
-    </div>
-  </div>
-
-  <!-- 英雄榜 Modal -->
-  <div class="lb-overlay" id="lb-modal">
-    <div class="lb-modal">
-      <div class="lb-title">🏆 英雄榜</div>
-      <div class="lb-tabs">
-        <button class="lb-tab active" onclick="loadLeaderboard('all')" id="lb-tab-all">全部</button>
-        <button class="lb-tab" onclick="loadLeaderboard('iggy')" id="lb-tab-iggy">🦊 Iggy</button>
-        <button class="lb-tab" onclick="loadLeaderboard('yoyo')" id="lb-tab-yoyo">🐸 Yoyo</button>
-      </div>
-      <div id="lb-list"><div class="lb-empty">載入中...</div></div>
-      <button class="lb-close" onclick="document.getElementById('lb-modal').classList.remove('open')">關閉</button>
-    </div>
   </div>
 
   <script src="phonics-dict.js"></script>
@@ -707,10 +625,7 @@
         rootInfo: {
           targetChunk: "burg", emoji: "🏰",
           title: "🏰 burg（城堡城市）",
-          story: "hamburger 來自德國漢堡市 Hamburg，那裡的人發明了這種肉排！跟火腿 ham 沒關係喔！",
-          wordFamily: ["turtle", "nurse", "burn"],
-          sillySentence: "A turtle nurse eats a hamburger on fire!",
-          sillySentenceTw: "一隻烏龜護士在吃著火的漢堡！"
+          story: "hamburger 來自德國漢堡市 Hamburg，那裡的人發明了這種肉排！跟火腿 ham 沒關係喔！"
         }
       },
       {
@@ -731,15 +646,7 @@
           { text: "ter", tts: "tur", highlights: [
             { target: "er", cssClass: "color-er-ending", hintClass: "hl-er", note: "綠色 er，跟 hamburger 一樣！" }
           ]}
-        ],
-        rootInfo: {
-          targetChunk: "ter", emoji: "💧",
-          title: "💧 er（字尾 er 家族）",
-          story: "很多單字結尾都有 er！water、teacher、computer 都是 er 家族的好朋友！",
-          wordFamily: ["teacher", "computer", "sister"],
-          sillySentence: "The teacher drinks water on the computer!",
-          sillySentenceTw: "老師在電腦上面喝水！"
-        }
+        ]
       },
       {
         id: "word_milk", word: "milk", layout: "single",
@@ -749,24 +656,14 @@
         ]
       },
       {
-        id: "word_juice", word: "juice", layout: "standard",
+        id: "word_juice", word: "juice", layout: "single",
         fullTts: "juice",
         chunks: [
-          { text: "jui", tts: "joo", highlights: [
-            { target: "ui", cssClass: "color-grape-purple", hintClass: "hl-purple", note: "紫色 ui，像葡萄汁 🍇" }
-          ]},
-          { text: "ce", tts: "suh", highlights: [
-            { target: "ce", cssClass: "style-silent-e", hintClass: "hl-silent", note: "c 遇到 e 唸 /s/，e 不發音" }
+          { text: "juice", tts: "joos", highlights: [
+            { target: "ui", cssClass: "color-grape-purple", hintClass: "hl-purple", note: "紫色 ui，像葡萄汁 🍇" },
+            { target: "ce", cssClass: "style-silent-e", hintClass: "hl-silent", note: "灰色虛線：e 不發音，讓 c 唸 /s/" }
           ]}
-        ],
-        rootInfo: {
-          targetChunk: "jui", emoji: "🍇",
-          title: "🍇 juice（果汁）",
-          story: "juice 來自拉丁文 jus，就是「液體」的意思！果汁就是水果流出來的液體！",
-          wordFamily: ["fruit", "suit"],
-          sillySentence: "A pig in a suit drinks juice on the roof!",
-          sillySentenceTw: "一隻穿西裝的豬在屋頂上喝果汁！"
-        }
+        ]
       },
       {
         id: "word_icecream", word: "ice cream", layout: "compound",
@@ -786,7 +683,6 @@
     // ══════════════════════════════════════════
     // 全域狀態
     // ══════════════════════════════════════════
-    const APP_VERSION = 'v2.5.0-20260428';
     const synth = window.speechSynthesis;
     let LESSONS = [];
     let currentWordIdx = 0;
@@ -797,148 +693,7 @@
     let currentUser = 'iggy';
     const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo' };
     let preferredVoice = null;
-
-    // ═══ 計分追蹤 ═══
-    let scoring = {
-      wordStartTime: 0,          // 當前單字開始時間
-      speechAttempts: 0,          // Phase 2 語音嘗試次數
-      speechPassed: false,        // Phase 2 是否已通過
-      writingAttempts: {},        // Phase 3 每個 canvasId 的嘗試次數
-      sessionScores: [],          // 每個單字的成績 [{word, speech, writing, time, total}]
-    };
-    function resetWordScoring() {
-      scoring.wordStartTime = Date.now();
-      scoring.speechAttempts = 0;
-      scoring.speechPassed = false;
-      scoring.writingAttempts = {};
-    }
-    function calcWordScore() {
-      const lesson = LESSONS[currentWordIdx];
-      if (!lesson) return null;
-      const numChunks = lesson.chunks.length;
-
-      // 語音分 (40 pts max)
-      let speechPts = 40;
-      if (scoring.speechAttempts <= 1) speechPts = 40;
-      else if (scoring.speechAttempts === 2) speechPts = 30;
-      else if (scoring.speechAttempts === 3) speechPts = 20;
-      else speechPts = 10;
-      if (!scoring.speechPassed) speechPts = 0;
-
-      // 手寫分 (40 pts max, 平均分配給各音節)
-      let writingPts = 0;
-      const ptsPerChunk = 40 / numChunks;
-      canvasIds.forEach(cvId => {
-        const att = scoring.writingAttempts[cvId] || 1;
-        let ratio = 1.0;
-        if (att === 1) ratio = 1.0;
-        else if (att === 2) ratio = 0.7;
-        else if (att === 3) ratio = 0.5;
-        else ratio = 0.3;
-        writingPts += ptsPerChunk * ratio;
-      });
-      writingPts = Math.round(writingPts);
-
-      // 時間加分 (20 pts max)
-      const elapsed = (Date.now() - scoring.wordStartTime) / 1000;
-      const avgPerChunk = elapsed / numChunks;
-      let timePts = 5;
-      if (avgPerChunk < 30) timePts = 20;
-      else if (avgPerChunk < 60) timePts = 15;
-      else if (avgPerChunk < 90) timePts = 10;
-
-      const total = speechPts + writingPts + timePts;
-      return { word: lesson.word, speech: speechPts, writing: writingPts, time: timePts, total, elapsed: Math.round(elapsed), speechAtt: scoring.speechAttempts };
-    }
-    function showWordScore(score) {
-      if (!score) return;
-      const stars = score.total >= 90 ? '⭐⭐⭐' : score.total >= 70 ? '⭐⭐' : '⭐';
-      const toast = document.createElement('div');
-      toast.className = 'word-score-toast';
-      toast.innerHTML = `
-        <div class="ws-word">${score.word}</div>
-        <div class="ws-total">${score.total}<span> / 100</span></div>
-        <div class="ws-bar">
-          <span class="ws-item">🎤${score.speech}</span>
-          <span class="ws-item">✏️${score.writing}</span>
-          <span class="ws-item">⏱️${score.time}</span>
-        </div>
-        <div class="ws-stars">${stars}</div>
-      `;
-      document.body.appendChild(toast);
-      setTimeout(() => { if (toast.parentElement) toast.remove(); }, 2800);
-    }
-    function showSessionSummary() {
-      const ss = scoring.sessionScores;
-      if (!ss.length) return;
-      const totalPts = ss.reduce((s, x) => s + x.total, 0);
-      const maxPts = ss.length * 100;
-      const avg = Math.round(totalPts / ss.length);
-      const totalTime = ss.reduce((s, x) => s + x.elapsed, 0);
-      const stars = avg >= 90 ? '⭐⭐⭐' : avg >= 70 ? '⭐⭐' : '⭐';
-
-      document.getElementById('sm-stars').textContent = stars;
-      document.getElementById('sm-total').textContent = totalPts + '/' + maxPts;
-      document.getElementById('sm-avg').textContent = avg;
-      document.getElementById('sm-time').textContent = totalTime + 's';
-
-      const detail = document.getElementById('sm-detail');
-      detail.innerHTML = ss.map((s, i) => `
-        <div class="sm-row">
-          <span>${i+1}.</span>
-          <span class="sm-word">${s.word}</span>
-          <span class="sm-mini">🎤${s.speech} ✏️${s.writing} ⏱️${s.time}</span>
-          <span class="sm-pts">${s.total}</span>
-        </div>
-      `).join('');
-
-      document.getElementById('session-modal').classList.add('open');
-
-      // 🏆 上傳成績到英雄榜
-      if (typeof saveScoreToCloud === 'function') {
-        saveScoreToCloud(currentUser, {
-          avg, total: totalPts, maxPts,
-          words: ss.length,
-          totalTime,
-          stars: avg >= 90 ? 3 : avg >= 70 ? 2 : 1,
-          details: ss.map(s => ({ word: s.word, total: s.total }))
-        });
-      }
-    }
-
-    function openLeaderboard() {
-      document.getElementById('lb-modal').classList.add('open');
-      loadLeaderboard('all');
-    }
-    function loadLeaderboard(filter) {
-      // 更新 tab 樣式
-      document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
-      document.getElementById('lb-tab-' + filter).classList.add('active');
-      // 載入資料
-      const list = document.getElementById('lb-list');
-      list.innerHTML = '<div class="lb-empty">載入中...</div>';
-      if (typeof fetchLeaderboard === 'function') {
-        fetchLeaderboard(filter).then(rows => {
-          if (!rows || !rows.length) { list.innerHTML = '<div class="lb-empty">還沒有紀錄，快去練習吧！</div>'; return; }
-          const medals = ['🥇','🥈','🥉'];
-          const rankCls = ['gold','silver','bronze'];
-          list.innerHTML = rows.map((r, i) => {
-            const d = r.date ? new Date(r.date.seconds ? r.date.seconds * 1000 : r.date) : null;
-            const dateStr = d ? `${d.getMonth()+1}/${d.getDate()}` : '';
-            const emoji = r.user === 'iggy' ? '🦊' : '🐸';
-            return `<div class="lb-row">
-              <span class="lb-rank ${rankCls[i] || ''}">${medals[i] || (i+1)}</span>
-              <span class="lb-user">${emoji} ${r.user}</span>
-              <span class="lb-info">${r.words}字 ${r.totalTime}s</span>
-              <span class="lb-avg">${r.avg}</span>
-              <span class="lb-date">${dateStr}</span>
-            </div>`;
-          }).join('');
-        });
-      } else {
-        list.innerHTML = '<div class="lb-empty">Firebase 尚未載入</div>';
-      }
-    }
+    let audioManifest = null; // MP3 音檔清單
 
     function findBestVoice() {
       const voices = synth.getVoices();
@@ -948,7 +703,18 @@
       if (preferredVoice) console.log('🔊 Voice:', preferredVoice.name);
     }
 
-    function speak(text, rate = 0.75) {
+    // MP3 播放（零延遲、跨裝置一致）
+    function playAudio(path) {
+      return new Promise(resolve => {
+        const audio = new Audio(path);
+        audio.onended = resolve;
+        audio.onerror = () => { console.warn('Audio failed:', path); resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    }
+
+    // Web Speech API fallback
+    function speakTTS(text, rate = 0.75) {
       synth.cancel();
       return new Promise(resolve => {
         const u = new SpeechSynthesisUtterance(text);
@@ -959,20 +725,28 @@
       });
     }
 
+    // 統一發音入口：MP3 優先 → Web Speech API fallback
+    function speak(text, rate = 0.75) {
+      return speakTTS(text, rate);
+    }
+
     function speakChunk(chunk, rate = 0.75) {
+      if (chunk.audioPath) return playAudio(chunk.audioPath);
+      // 先查是否有手動修正
       const lesson = LESSONS[currentWordIdx];
       if (lesson) {
         const ci = lesson.chunks.indexOf(chunk);
         if (ci >= 0) {
           const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
-          return speak(override, rate);
+          return speakTTS(override, rate);
         }
       }
-      return speak(chunk.tts || chunk.text, rate);
+      return speakTTS(chunk.tts || chunk.text, rate);
     }
 
     function speakFullWord(lesson, rate = 0.8) {
-      return speak(lesson.fullTts || lesson.word, rate);
+      if (lesson.fullAudio) return playAudio(lesson.fullAudio);
+      return speakTTS(lesson.fullTts || lesson.word, rate);
     }
 
     // ══════════════════════════════════════════
@@ -989,6 +763,22 @@
     function getOverriddenTts(word, chunkIdx, defaultTts) {
       const o = getTtsOverrides();
       return o[word.toLowerCase() + '_' + chunkIdx] || defaultTts;
+    }
+
+    // 將 manifest 合併到 LESSONS 中
+    function mergeAudioManifest() {
+      if (!audioManifest) return;
+      for (const lesson of LESSONS) {
+        const entry = audioManifest[lesson.word.toLowerCase()];
+        if (!entry) continue;
+        lesson.fullAudio = entry.full;
+        if (entry.chunks) {
+          entry.chunks.forEach((ac, i) => {
+            if (lesson.chunks[i]) lesson.chunks[i].audioPath = ac.audio;
+          });
+        }
+      }
+      console.log('🎵 Audio manifest merged');
     }
 
     function speakChinese(text) {
@@ -1025,27 +815,37 @@
 【核心任務】
 1. chunks：切成自然發音音節，盡量保留字根完整性（如 hamburger → ham-burg-er）。單音節字不切。
 2. tts：餵給 TTS 語音引擎的發音字串。短音節必須轉成自然發音拼寫法，防止引擎逐字拼讀：
-   wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→suh
-3. rootInfo：找出最核心字根或最難的發音規則，生成以下擴充教學內容：
-   - story：30 字以內的有趣字根或發音故事，像對小學三年級學生說話。
-   - wordFamily：陣列格式，2~3 個與該 chunk 擁有「相同發音規則」且適合國小生程度的簡單單字。
-   - sillySentence：用目標單字造一句 10 個字以內、情境誇張搞笑有畫面的英文句子（強烈建議把 wordFamily 裡的單字也編進去，產生荒謬感）。
-   - sillySentenceTw：該搞笑句子的繁體中文口語化翻譯。
+   wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→ss
+3. rootInfo：找出最核心字根，寫 30 字以內的有趣故事，像對小學三年級學生說話。
 
 【Phonics 視覺標記規則 (highlights)】
 請仔細檢查每個 chunk 是否包含以下規則，有的話務必加入 highlights：
-[Silent E / 魔法 e] 字尾不發音的 e：{"target":"e","cssClass":"style-silent-e","hintClass":"hl-silent","note":"灰色 e：安靜不發音"}
-[Soft C/G] c 遇到 e/i/y 唸 /s/：{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}
-[Vowel Teams] ea, ee, ai, oa, oo：{"target":"ea","cssClass":"color-cream-yellow","hintClass":"hl-cream","note":"黃色 ea：兩個母音一起，第一個講話"}
-[Bossy R] ur/ir → color-ur(橘), er → color-er-ending(綠)
-[Digraphs] sh, ch, th → color-water-blue(藍)
+
+[Silent E / 魔法 e] 字尾不發音的 e（如 ice, cake, bike, home）：
+  {"target":"e","cssClass":"style-silent-e","hintClass":"hl-silent","note":"灰色 e：安靜不發音"}
+  同時把被 magic e 影響的母音標記：
+  {"target":"i","cssClass":"style-magic-e","hintClass":"hl-magic","note":"Magic E 讓 i 唸自己的名字"}
+
+[Soft C/G] c 遇到 e/i/y 唸 /s/，g 遇到 e/i/y 唸 /dʒ/（如 juice 的 ce, magic 的 gi）：
+  {"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}
+
+[Vowel Teams / 母音團隊] ea, ee, ai, oa, oo 等：
+  {"target":"ea","cssClass":"color-cream-yellow","hintClass":"hl-cream","note":"黃色 ea：兩個母音一起，第一個講話"}
+
+[Bossy R] ar, er, ir, or, ur：
+  ur → {"target":"ur","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ur"}
+  er → {"target":"er","cssClass":"color-er-ending","hintClass":"hl-er","note":"綠色 er"}
+  ir → {"target":"ir","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ir（同 ur 音）"}
+
+[Digraphs] sh, ch, th：
+  {"target":"sh","cssClass":"color-water-blue","hintClass":"hl-water","note":"藍色 sh：噓～的聲音"}
 
 cssClass 可用：color-ur(橘)、color-er-ending(綠)、color-water-blue(藍)、color-grape-purple(紫)、color-cream-yellow(黃)、style-magic-e(粉紅)、style-silent-e(灰虛線)
 hintClass 可用：hl-ur、hl-er、hl-water、hl-purple、hl-cream、hl-magic、hl-silent
 layout 可用：single(單音節)、standard(多音節)、compound(複合字如 hot dog)
 
 JSON 範例：
-{"word":"hamburger","chunks":[{"text":"ham","tts":"ham","highlights":[]},{"text":"burg","tts":"burr","highlights":[{"target":"ur","cssClass":"color-ur","hintClass":"hl-ur","note":"橘色 ur"}]},{"text":"er","tts":"ur","highlights":[{"target":"er","cssClass":"color-er-ending","hintClass":"hl-er","note":"綠色 er"}]}],"layout":"standard","fullTts":"hamburger","rootInfo":{"targetChunk":"burg","emoji":"🏰","title":"🏰 burg（城堡城市）","story":"hamburger 來自德國漢堡市，跟火腿(ham)沒有關係喔！","wordFamily":["turtle","nurse"],"sillySentence":"A turtle eats a hamburger in the bathtub!","sillySentenceTw":"一隻烏龜在浴缸裡吃漢堡！"}}`;
+{"word":"juice","chunks":[{"text":"juice","tts":"joos","highlights":[{"target":"ui","cssClass":"color-grape-purple","hintClass":"hl-purple","note":"紫色 ui 像葡萄汁"},{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}]}],"layout":"single","fullTts":"juice","rootInfo":{"targetChunk":"juice","emoji":"🍇","title":"🍇 juice（果汁）","story":"juice 來自拉丁文 jus，就是「液體」的意思！所以果汁就是水果流出來的液體！"}}`;
       try {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
@@ -1065,45 +865,26 @@ JSON 範例：
     }
 
     // 智慧解析：快取 → Gemini → 靜態詞庫 → 基本
-    async function resolveWord(input) {
-      // 有 - 分隔 = 手動切割，不讓 Gemini 覆蓋音節
-      if (input.includes('-')) {
-        const chunks = input.split('-').map(s => s.trim()).filter(Boolean);
-        const word = chunks.join('');
-        const cached = getCache(input);
-        if (cached) return cached;
-        // 查靜態詞庫看有沒有 highlights
-        const dictKey = word.toLowerCase().replace(/[\s\.\']/g, '');
-        const dictEntry = (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[dictKey]);
-        const e = {
-          word: word, layout: chunks.length === 1 ? 'single' : 'standard',
-          fullTts: word,
-          chunks: chunks.map(text => {
-            // 從靜態詞庫找匹配的 chunk 拿 highlights
-            const match = dictEntry?.chunks?.find(c => c.text === text);
-            return { text, tts: match?.tts || text, highlights: match?.highlights || [] };
-          })
-        };
-        // 如果靜態詞庫有 rootInfo 就帶入
-        if (dictEntry?.rootInfo) e.rootInfo = dictEntry.rootInfo;
-        setCache(input, e);
-        return e;
-      }
-
-      // 沒有 - = 讓系統決定切法
-      const cached = getCache(input);
+    async function resolveWord(word) {
+      const cached = getCache(word);
       if (cached) return cached;
       if (GEMINI_KEY) {
-        const g = await fetchFromGemini(input);
-        if (g?.chunks?.length) { setCache(input, g); return g; }
+        const g = await fetchFromGemini(word);
+        if (g?.chunks?.length) { setCache(word, g); return g; }
       }
-      const key = input.toLowerCase().replace(/[\s\-\.\']/g, '');
+      const key = word.toLowerCase().replace(/[\s\-\.\']/g, '');
       if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key]) {
         const e = JSON.parse(JSON.stringify(PHONICS_DICT[key]));
-        setCache(input, e); return e;
+        setCache(word, e); return e;
       }
-      const e = { word: input, layout: 'single', fullTts: input, chunks: [{ text: input, tts: input, highlights: [] }] };
-      setCache(input, e); return e;
+      if (word.includes('-')) {
+        const ch = word.split('-').map(s => s.trim()).filter(Boolean);
+        const e = { word: ch.join(''), layout: ch.length === 1 ? 'single' : 'standard',
+          fullTts: ch.join(''), chunks: ch.map(t => ({ text: t, tts: t, highlights: [] })) };
+        setCache(word, e); return e;
+      }
+      const e = { word, layout: 'single', fullTts: word, chunks: [{ text: word, tts: word, highlights: [] }] };
+      setCache(word, e); return e;
     }
 
     // ══════════════════════════════════════════
@@ -1116,37 +897,6 @@ JSON 範例：
       document.getElementById('root-emoji').textContent = rootInfo.emoji || '✨';
       document.getElementById('root-title').textContent = rootInfo.title || '';
       document.getElementById('root-story').textContent = rootInfo.story || '';
-
-      // 發音家族
-      const familyContainer = document.getElementById('word-family');
-      const familyLabel = document.getElementById('family-label');
-      familyContainer.innerHTML = '';
-      if (rootInfo.wordFamily?.length) {
-        familyLabel.textContent = '👨‍👩‍👧‍👦 發音家族（點擊聽發音）';
-        rootInfo.wordFamily.forEach(w => {
-          const btn = document.createElement('span');
-          btn.className = 'family-word';
-          btn.textContent = w;
-          btn.onclick = (e) => { e.stopPropagation(); speak(w, 0.8); };
-          familyContainer.appendChild(btn);
-        });
-      } else {
-        familyLabel.textContent = '';
-      }
-
-      // 荒謬情境句
-      const sillyBox = document.getElementById('silly-box');
-      const sillyHint = document.getElementById('silly-hint');
-      if (rootInfo.sillySentence) {
-        document.getElementById('silly-en').textContent = '🤪 ' + rootInfo.sillySentence;
-        document.getElementById('silly-tw').textContent = rootInfo.sillySentenceTw || '';
-        sillyBox.style.display = 'block';
-        sillyHint.textContent = '👆 點擊句子聽英文朗讀';
-      } else {
-        sillyBox.style.display = 'none';
-        sillyHint.textContent = '';
-      }
-
       document.getElementById('root-modal').classList.add('open');
     }
     function closeRootModal() {
@@ -1155,9 +905,6 @@ JSON 範例：
     }
     function readRootStory() {
       if (currentRootInfo?.story) speakChinese(currentRootInfo.story);
-    }
-    function playSillySentence() {
-      if (currentRootInfo?.sillySentence) speak(currentRootInfo.sillySentence, 0.8);
     }
 
     // ══════════════════════════════════════════
@@ -1195,9 +942,6 @@ JSON 範例：
       document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active-user'));
       document.getElementById('btn-' + userId).classList.add('active-user');
 
-      // 🎯 重置計分
-      scoring.sessionScores = [];
-
       // 載入該使用者的字單
       loadUserLessons();
       currentWordIdx = 0;
@@ -1207,7 +951,6 @@ JSON 範例：
     }
 
     function loadUserLessons() {
-      // 先從 localStorage 載入（瞬間）
       try {
         const saved = localStorage.getItem('phonics-' + currentUser + '-words');
         if (saved) {
@@ -1218,24 +961,6 @@ JSON 範例：
       } catch(e) {}
       LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
       usingDefaults = true;
-
-      // ☁️ 背景從雲端同步
-      if (typeof syncFromCloud === 'function') {
-        syncFromCloud(currentUser).then(cloudLessons => {
-          if (cloudLessons && cloudLessons.length > 0) {
-            const localWords = LESSONS.map(l => l.word).join(',');
-            const cloudWords = cloudLessons.map(l => l.word).join(',');
-            if (cloudWords !== localWords) {
-              LESSONS = cloudLessons;
-              usingDefaults = false;
-              try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(cloudLessons)); } catch(e) {}
-              console.log('☁️ 雲端字單已同步到本機');
-              renderWordPills();
-              loadCurrentWord();
-            }
-          }
-        });
-      }
     }
 
     function openSettings() {
@@ -1249,6 +974,16 @@ JSON 範例：
       document.getElementById('gemini-key-input').value = GEMINI_KEY;
     }
     function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+    function resetToDefault() {
+      LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
+      usingDefaults = true;
+      try { localStorage.removeItem('phonics-' + currentUser + '-words'); } catch(e) {}
+      closeSettings();
+      currentWordIdx = 0;
+      renderWordPills();
+      loadCurrentWord();
+    }
 
     async function saveSettings() {
       const raw = document.getElementById('word-input').value.trim();
@@ -1287,10 +1022,7 @@ JSON 範例：
 
       usingDefaults = false;
       try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
-      // ☁️ 同步到 Firebase
-      if (typeof syncToCloud === 'function') syncToCloud(currentUser, LESSONS);
 
-      scoring.sessionScores = []; // 🎯 重置計分
       currentWordIdx = 0;
       renderWordPills();
       loadCurrentWord();
@@ -1304,20 +1036,12 @@ JSON 範例：
       c.innerHTML = '';
       LESSONS.forEach((l, i) => {
         const btn = document.createElement('button');
-        const hasScore = scoring.sessionScores[i];
-        btn.className = 'pill' + (i === currentWordIdx ? ' active' : '') + (hasScore ? ' done' : '');
+        btn.className = 'pill' + (i === currentWordIdx ? ' active' : '');
         // Phase 3 手寫階段：隱藏拼寫，只顯示序號
         if (currentPhase === 3) {
           btn.textContent = `#${i + 1}`;
         } else {
           btn.textContent = l.word;
-        }
-        // 🎯 顯示分數徽章
-        if (hasScore) {
-          const badge = document.createElement('span');
-          badge.className = 'score-badge';
-          badge.textContent = hasScore.total;
-          btn.appendChild(badge);
         }
         btn.onclick = () => { currentWordIdx = i; renderWordPills(); loadCurrentWord(); };
         c.appendChild(btn);
@@ -1327,9 +1051,6 @@ JSON 範例：
       if (currentWordIdx < LESSONS.length - 1) {
         currentWordIdx++;
         renderWordPills(); loadCurrentWord(); switchPhase(1);
-      } else {
-        // 🎯 已是最後一字，顯示總結
-        showSessionSummary();
       }
     }
 
@@ -1338,10 +1059,10 @@ JSON 範例：
     // ══════════════════════════════════════════
     function loadCurrentWord() {
       if (!LESSONS.length) return;
+      mergeAudioManifest(); // 合併 MP3 路徑
       const lesson = LESSONS[currentWordIdx];
       document.getElementById('next-word-btn').classList.remove('show');
       document.getElementById('celebration').classList.remove('show');
-      resetWordScoring(); // 🎯 開始計時
       buildPhase1(lesson);
       buildPhase2(lesson);
       buildPhase3(lesson);
@@ -1412,7 +1133,7 @@ JSON 範例：
             setTtsOverride(lessonRef.word, chunkIdx, newVal);
             chunkRef.tts = newVal;
             buildPhase1(lessonRef);
-            speak(newVal, 0.75);
+            speakTTS(newVal, 0.75);
           }
           input.onkeydown = (ev) => { if (ev.key === 'Enter') save(); if (ev.key === 'Escape') buildPhase1(lessonRef); };
           input.onblur = save;
@@ -1511,7 +1232,6 @@ JSON 範例：
       const lesson = LESSONS[currentWordIdx]; if (!lesson) return;
       const rd = document.getElementById('speech-result');
       const mb = document.getElementById('mic-btn');
-      scoring.speechAttempts++; // 🎯 計算嘗試次數
       rd.textContent = `聆聽中… 大聲唸出 ${lesson.word}！`;
       rd.style.color = '#888';
       mb.style.background = '#FF6347'; mb.style.color = 'white';
@@ -1521,8 +1241,7 @@ JSON 範例：
         mb.style.background = ''; mb.style.color = '';
         const target = lesson.word.toLowerCase().replace(/\s+/g, '');
         if (t.includes(target) || target.includes(t)) {
-          scoring.speechPassed = true; // 🎯 標記通過
-          rd.innerHTML = `🎉 太棒了！(第 ${scoring.speechAttempts} 次)`;
+          rd.innerHTML = `🎉 太棒了！`;
           rd.style.color = 'var(--color-er)';
           // 亮起顏色
           lesson.chunks.forEach((_, ci) => {
@@ -1532,8 +1251,6 @@ JSON 範例：
               else el.style.color = ['#FF6347','#FFA500','#32CD32','#4A90E2','#9B59B6'][ci % 5];
             });
           });
-          // 🎯 自動跳入手寫階段
-          setTimeout(() => switchPhase(3), 1200);
         } else {
           rd.innerHTML = `你唸了 "${e.results[0][0].transcript}" 🧐 再試一次！`;
           rd.style.color = '#FF6347';
@@ -1570,12 +1287,6 @@ JSON 範例：
           ? `<span class="root-badge-box" onclick="showRootModal(LESSONS[currentWordIdx].rootInfo)">✨</span>`
           : '';
 
-        const isLastChunk = ci === lesson.chunks.length - 1;
-        const checkOnclick = isLastChunk && lesson.chunks.length > 1
-          ? `verifyAll()` 
-          : `verifySingle('${cvId}')`;
-        const checkIcon = isLastChunk && lesson.chunks.length > 1 ? '✅' : '☑️';
-
         col.innerHTML = `
           <div class="syl-box">
             <div class="hint">${hintHTML}</div>
@@ -1585,7 +1296,7 @@ JSON 範例：
           </div>
           <div class="syl-btns">
             <button class="icon-btn speak" onclick="speakChunkByIdx(${ci})">🔊</button>
-            <button class="icon-btn check" onclick="${checkOnclick}">${checkIcon}</button>
+            <button class="icon-btn check" onclick="verifySingle('${cvId}')">☑️</button>
             <button class="icon-btn erase" onclick="eraseSingle('${cvId}')">🗑️</button>
           </div>`;
         layout.appendChild(col);
@@ -1601,8 +1312,9 @@ JSON 範例：
       if (!lesson) return;
       const chunk = lesson.chunks[ci];
       if (!chunk) return;
+      if (chunk.audioPath) { playAudio(chunk.audioPath); return; }
       const override = getOverriddenTts(lesson.word, ci, chunk.tts || chunk.text);
-      speak(override, 0.75);
+      speakTTS(override, 0.75);
     }
 
     // ══════════════════════════════════════════
@@ -1619,12 +1331,11 @@ JSON 範例：
       else document.getElementById('rotate-prompt').style.display = 'none';
     }
     function checkOrientation() {
+      // Landscape lock removed — allow portrait handwriting
       const p = document.getElementById('rotate-prompt');
-      if (currentPhase !== 3) { p.style.display = 'none'; return; }
-      p.style.display = (window.innerHeight > window.innerWidth) ? 'flex' : 'none';
+      p.style.display = 'none';
     }
     window.addEventListener('resize', () => {
-      checkOrientation();
       if (currentPhase === 3) raf2(() => initAllCanvas());
     });
 
@@ -1646,7 +1357,7 @@ JSON 範例：
       const ctx = cv.getContext('2d');
       ctx.scale(dpr, dpr);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.lineWidth = 7; ctx.strokeStyle = '#4A90E2';
+      ctx.lineWidth = 7; ctx.strokeStyle = '#3C4043';
       let drawing = false, lx = 0, ly = 0;
       cv.addEventListener('pointerdown', (e) => {
         e.preventDefault(); drawing = true;
@@ -1666,28 +1377,9 @@ JSON 範例：
     }
 
     // ══════════════════════════════════════════
-    // Gemini Key 檢查
-    // ══════════════════════════════════════════
-    function showNoKeyWarning() {
-      // 如果已經有警告在顯示就不重複
-      if (document.querySelector('.no-key-warning')) return false;
-      const warn = document.createElement('div');
-      warn.className = 'no-key-warning';
-      warn.innerHTML = `
-        <div class="nk-icon">🔑</div>
-        <div class="nk-title">尚未設定 Gemini API Key</div>
-        <div class="nk-text">手寫辨識需要 Gemini AI。<br>請按右上角 ⚙️ 設定並輸入你的 Key。</div>
-        <button class="nk-btn" onclick="this.parentElement.remove(); openSettings();">前往設定</button>
-      `;
-      document.body.appendChild(warn);
-      return false; // 表示沒有 key
-    }
-
-    // ══════════════════════════════════════════
     // 驗證
     // ══════════════════════════════════════════
     async function verifySingle(canvasId) {
-      if (!GEMINI_KEY) { showNoKeyWarning(); return; }
       const canvas = document.getElementById(canvasId);
       if (!canvas || canvas.classList.contains('locked')) return;
       if (isCanvasBlank(canvas)) {
@@ -1695,9 +1387,6 @@ JSON 範例：
         setTimeout(() => canvas.classList.remove('error'), 500);
         return;
       }
-      // 🎯 追蹤每個音節的嘗試次數
-      if (!scoring.writingAttempts[canvasId]) scoring.writingAttempts[canvasId] = 0;
-      scoring.writingAttempts[canvasId]++;
       const loader = document.getElementById('loader');
       loader.classList.add('show');
       canvas.classList.add('checking');
@@ -1717,60 +1406,6 @@ JSON 範例：
         canvas.classList.remove('error');
         clearCanvas(canvas);
       }
-    }
-
-    // 依序檢查所有音節（點最後一個 ✅ 觸發）
-    async function verifyAll() {
-      if (!GEMINI_KEY) { showNoKeyWarning(); return; }
-      const loader = document.getElementById('loader');
-      loader.classList.add('show');
-
-      for (let i = 0; i < canvasIds.length; i++) {
-        const cvId = canvasIds[i];
-        const canvas = document.getElementById(cvId);
-        if (!canvas) continue;
-        if (canvas.classList.contains('locked')) {
-          // 已通過的音節：唸出來然後繼續
-          await speakChunkByIdx(i);
-          await new Promise(r => setTimeout(r, 200));
-          continue;
-        }
-
-        // 空白檢查
-        if (isCanvasBlank(canvas)) {
-          loader.classList.remove('show');
-          canvas.classList.add('error');
-          setTimeout(() => canvas.classList.remove('error'), 500);
-          return; // 停止
-        }
-
-        // OCR 檢查
-        canvas.classList.add('checking');
-        const target = canvas.dataset.target;
-        // 🎯 追蹤嘗試次數
-        if (!scoring.writingAttempts[cvId]) scoring.writingAttempts[cvId] = 0;
-        scoring.writingAttempts[cvId]++;
-        const result = await recognizeWithGemini(canvas, target);
-        canvas.classList.remove('checking');
-
-        if (result) {
-          canvas.classList.add('locked');
-          await speakChunkByIdx(i);
-          await new Promise(r => setTimeout(r, 200));
-        } else {
-          // 寫錯 → 停在這裡
-          loader.classList.remove('show');
-          canvas.classList.add('error');
-          await speak('oops', 1.0);
-          await new Promise(r => setTimeout(r, 500));
-          canvas.classList.remove('error');
-          clearCanvas(canvas);
-          return; // 停止，不繼續檢查後面的
-        }
-      }
-
-      loader.classList.remove('show');
-      checkAllComplete();
     }
     function eraseSingle(id) {
       const c = document.getElementById(id);
@@ -1794,24 +1429,22 @@ JSON 範例：
       if (!GEMINI_KEY) return !isCanvasBlank(canvas); // fallback
 
       const imageData = canvas.toDataURL('image/png').split(',')[1];
+      const prompt = `You are a STRICT spelling teacher checking a 9-year-old child's handwriting.
+The child must write EXACTLY these letters: "${target}"
 
-      // Step 1: 盲讀 — 不告訴 AI 答案，只問「你看到什麼」
-      const prompt = `You are a handwriting reader. A child wrote some English letters on this canvas.
+STEP 1: Look at the image carefully. List EACH letter you see, one by one.
+STEP 2: Compare your reading with the target "${target}" letter by letter.
+STEP 3: Judge — are ALL letters correct?
 
-YOUR ONLY JOB: Read and transcribe EXACTLY the letters you see. Nothing else.
+STRICT RULES:
+- Letter identity is CRITICAL: "u" ≠ "e" ≠ "i" ≠ "a" ≠ "o"
+- "bur" written as "ber" = WRONG (different vowel)
+- "ham" written as "hem" = WRONG
+- Missing or extra letters = WRONG
+- Messy/wobbly handwriting is OK as long as the correct letters are identifiable
 
-RULES:
-- Report ONLY the lowercase letters you can clearly identify.
-- Do NOT guess, assume, or fill in blanks.
-- If a stroke is unclear, skip it.
-- Do NOT add letters that aren't there.
-- Respond with JSON only: {"letters": "the letters you see"}
-
-Examples:
-- If you see "h a m" written → {"letters": "ham"}
-- If you see "m k" with nothing in between → {"letters": "mk"}
-- If you see "b e r" → {"letters": "ber"}
-- If you see scribbles with no clear letters → {"letters": ""}`;
+Respond with JSON only:
+{"letters_seen": "what you read", "correct": true/false}`;
 
       try {
         const res = await fetch(
@@ -1829,28 +1462,8 @@ Examples:
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const clean = text.replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(clean);
-        const seen = (parsed.letters || '').toLowerCase().trim();
-
-        // Step 2: JS 比對 — 程式碼做精確字串比較
-        const expected = target.toLowerCase().trim();
-        const isCorrect = seen === expected;
-
-        // 顯示 OCR 結果 Toast（底部橫條）
-        const toast = document.createElement('div');
-        toast.className = 'ocr-toast';
-        toast.innerHTML = `
-          <span class="ocr-seen">${seen || '？'}</span>
-          <span class="ocr-arrow">→</span>
-          <span class="ocr-expected">${expected}</span>
-          <span class="ocr-result ${isCorrect ? 'ocr-ok' : 'ocr-ng'}">
-            ${isCorrect ? '✅' : '❌'}
-          </span>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2500);
-
-        console.log(`OCR: 看到="${seen}" 正確="${expected}" → ${isCorrect ? '✅' : '❌'}`);
-        return isCorrect;
+        console.log(`OCR: target="${target}" seen="${parsed.letters_seen}" correct=${parsed.correct}`);
+        return parsed.correct === true;
       } catch(err) {
         console.error('Gemini OCR error:', err);
         return !isCanvasBlank(canvas); // fallback
@@ -1869,24 +1482,10 @@ Examples:
     }
     function checkAllComplete() {
       if (document.querySelectorAll('.syl-box canvas.locked').length === canvasIds.length) {
-        // 🎯 計算並顯示本字得分
-        const score = calcWordScore();
-        if (score) {
-          scoring.sessionScores[currentWordIdx] = score;
-          showWordScore(score);
-        }
         document.getElementById('celebration').classList.add('show');
-        const celMsg = document.getElementById('cel-msg');
-        if (celMsg && score) celMsg.textContent = `完成了！${score.total} 分`;
         speakFullWord(LESSONS[currentWordIdx]);
-        if (currentWordIdx < LESSONS.length - 1) {
+        if (currentWordIdx < LESSONS.length - 1)
           document.getElementById('next-word-btn').classList.add('show');
-        } else {
-          // 🎯 最後一個字完成 → 延遲顯示總結
-          setTimeout(() => showSessionSummary(), 3200);
-        }
-        // 🎯 標記 pill 為 done 並顯示分數
-        renderWordPills();
       }
     }
 
@@ -1898,9 +1497,6 @@ Examples:
     findBestVoice(); // 首次嘗試
 
     window.addEventListener('load', () => {
-      console.log('🔤 Phonics 拼音練習 ' + APP_VERSION);
-      const vd = document.getElementById('version-display');
-      if (vd) vd.textContent = 'Phonics ' + APP_VERSION;
       try { GEMINI_KEY = localStorage.getItem('phonics-gemini-key') || ''; } catch(e) {}
 
       // 讀取上次使用的使用者
@@ -1912,95 +1508,75 @@ Examples:
       // 載入該使用者的字單
       loadUserLessons();
 
+      // 載入 MP3 音檔清單（如果存在）
+      fetch('assets/audio-manifest.json')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            audioManifest = data;
+            mergeAudioManifest();
+            console.log('🎵 Audio manifest loaded:', Object.keys(data).length, 'words');
+          }
+        })
+        .catch(() => console.log('ℹ️ No audio manifest, using Web Speech API'));
+
       renderWordPills();
       loadCurrentWord();
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
       }
+
+      // ═══ Auto-advance: watch next-word-btn appear → auto go next ═══
+      window._autoAdvancing = false;
+      const nwb = document.getElementById('next-word-btn');
+      if (nwb) {
+        new MutationObserver(() => {
+          if (nwb.classList.contains('show') && !window._autoAdvancing) {
+            window._autoAdvancing = true;
+            setTimeout(() => {
+              window._speechFailCount = 0;
+              window._autoAdvancing = false;
+              goNextWord();
+            }, 2000);
+          }
+        }).observe(nwb, { attributes: true, attributeFilter: ['class'] });
+      }
+
+      // ═══ Speech fail 3x → auto switch to handwriting ═══
+      window._speechFailCount = 0;
+      const p2el = document.getElementById('phase2');
+      if (p2el) {
+        new MutationObserver(() => {
+          const rd = document.getElementById('speech-result');
+          if (!rd) return;
+          const t = rd.textContent;
+          if (!t || t.length < 3) return;
+          const isFail = t.includes('再試') || t.includes('🧐') || t.includes('聽不');
+          const isOk = t.includes('🎉') || t.includes('太棒');
+          if (isFail) {
+            window._speechFailCount = (window._speechFailCount || 0) + 1;
+            if (window._speechFailCount >= 3) {
+              const toast = document.createElement('div');
+              toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:16px 24px;background:rgba(196,135,122,0.95);color:#3C4043;border-radius:16px;font-size:0.9rem;font-weight:700;z-index:99999;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4);';
+              toast.innerHTML = '✏️ 試了 3 次了！<br>切換到手寫模式';
+              document.body.appendChild(toast);
+              setTimeout(() => { toast.remove(); window._speechFailCount = 0; switchPhase(3); }, 1500);
+            }
+          } else if (isOk) { window._speechFailCount = 0; }
+        }).observe(p2el, { childList: true, subtree: true, characterData: true });
+      }
     });
+
+    // ═══ Cache clear function ═══
+    function clearCacheReload() {
+      if (!confirm('確定清除快取並重新載入？')) return;
+      caches.keys().then(k => Promise.all(k.map(c => caches.delete(c))))
+        .then(() => navigator.serviceWorker.getRegistrations())
+        .then(r => Promise.all(r.map(x => x.unregister())))
+        .then(() => location.reload(true))
+        .catch(() => location.reload(true));
+    }
   </script>
-
-<!-- ═══ Firebase 雲端同步 ═══ -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAdu9s_EkPr0obWjK6l6uLS-Oca3Lu2uaw",
-        authDomain: "screw-inventory.firebaseapp.com",
-        projectId: "screw-inventory",
-        storageBucket: "screw-inventory.firebasestorage.app",
-        messagingSenderId: "551217188475",
-        appId: "1:551217188475:web:42ecd142b3734eba5d5cde"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    async function syncToCloud(user, lessons) {
-        try {
-            const words = lessons.map(l => l.word).join('\n');
-            const data = JSON.stringify(lessons);
-            await db.collection('phonics-english-wordlists').doc(user).set({
-                words: words,
-                lessons: data,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log('☁️ ' + user + ' 英文字單已同步到雲端');
-        } catch(e) {
-            console.warn('雲端同步失敗:', e.message);
-        }
-    }
-
-    async function syncFromCloud(user) {
-        try {
-            const doc = await db.collection('phonics-english-wordlists').doc(user).get();
-            if (doc.exists && doc.data().lessons) {
-                const lessons = JSON.parse(doc.data().lessons);
-                console.log('☁️ ' + user + ' 英文字單已從雲端載入 (' + lessons.length + '字)');
-                return lessons;
-            }
-        } catch(e) {
-            console.warn('雲端讀取失敗:', e.message);
-        }
-        return null;
-    }
-
-    // ═══ 英雄榜 Firebase 功能 ═══
-    async function saveScoreToCloud(user, score) {
-        try {
-            await db.collection('phonics-scores').add({
-                user: user,
-                avg: score.avg,
-                total: score.total,
-                maxPts: score.maxPts,
-                words: score.words,
-                totalTime: score.totalTime,
-                stars: score.stars,
-                details: JSON.stringify(score.details),
-                date: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log('🏆 ' + user + ' 成績已上傳英雄榜: avg=' + score.avg);
-        } catch(e) {
-            console.warn('英雄榜上傳失敗:', e.message);
-        }
-    }
-
-    async function fetchLeaderboard(filter) {
-        try {
-            let query = db.collection('phonics-scores').orderBy('avg', 'desc').limit(20);
-            if (filter !== 'all') {
-                query = db.collection('phonics-scores')
-                    .where('user', '==', filter)
-                    .orderBy('avg', 'desc').limit(20);
-            }
-            const snap = await query.get();
-            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch(e) {
-            console.warn('英雄榜讀取失敗:', e.message);
-            return [];
-        }
-    }
-</script>
-
 </body>
 </html>
