@@ -583,6 +583,7 @@
         <button class="modal-btn cancel" onclick="closeSettings()">取消</button>
         <button class="modal-btn save" onclick="saveSettings()">✅ 儲存</button>
       </div>
+      <div style="text-align:center; margin-top:8px; font-size:0.6rem; color:#ccc;" id="version-display"></div>
     </div>
   </div>
 
@@ -785,6 +786,7 @@
     // ══════════════════════════════════════════
     // 全域狀態
     // ══════════════════════════════════════════
+    const APP_VERSION = 'v2.5.0-20260428';
     const synth = window.speechSynthesis;
     let LESSONS = [];
     let currentWordIdx = 0;
@@ -1896,6 +1898,9 @@ Examples:
     findBestVoice(); // 首次嘗試
 
     window.addEventListener('load', () => {
+      console.log('🔤 Phonics 拼音練習 ' + APP_VERSION);
+      const vd = document.getElementById('version-display');
+      if (vd) vd.textContent = 'Phonics ' + APP_VERSION;
       try { GEMINI_KEY = localStorage.getItem('phonics-gemini-key') || ''; } catch(e) {}
 
       // 讀取上次使用的使用者
