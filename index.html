@@ -526,6 +526,8 @@
           一把 Key 搞定所有功能：音節切割、字根故事、手寫辨識。<br>
           已分析過的字會存在裝置上，不重複呼叫。
         </div>
+        <div class="hint-text" style="margin-top:6px;">🤖 目前模型：<span id="ph-current-model" style="color:#4A90E2;font-family:monospace;">—</span>
+        <button onclick="localStorage.removeItem('phonics-gemini-model');GEMINI_MODEL=GEMINI_MODELS[0];document.getElementById('ph-current-model').textContent=GEMINI_MODEL;" style="margin-left:6px;padding:2px 8px;border:1px solid #ddd;background:transparent;color:#888;border-radius:6px;font-size:0.6rem;cursor:pointer;">重設為 2.5</button></div>
       </div>
       <div class="section" style="padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
         <label>🧹 維護工具</label>
@@ -695,6 +697,57 @@
     let preferredVoice = null;
     let audioManifest = null; // MP3 音檔清單
 
+    // ═══ Gemini Model Fallback + 429 Retry ═══
+    const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
+    let GEMINI_MODEL = localStorage.getItem('phonics-gemini-model') || GEMINI_MODELS[0];
+
+    async function callGemini(body, opts) {
+      if (!GEMINI_KEY) throw new Error('NO_KEY');
+      opts = opts || {};
+      const maxRetry = opts.maxRetry ?? 2;
+      let lastErr = null;
+      for (let mi = 0; mi < GEMINI_MODELS.length; mi++) {
+        const model = mi === 0 ? GEMINI_MODEL : GEMINI_MODELS[mi];
+        if (mi > 0 && model === GEMINI_MODEL) continue;
+        for (let attempt = 0; attempt <= maxRetry; attempt++) {
+          try {
+            const res = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+              { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+            );
+            if (res.ok) {
+              if (model !== GEMINI_MODEL) {
+                GEMINI_MODEL = model;
+                try { localStorage.setItem('phonics-gemini-model', model); } catch(e) {}
+                console.log('🔄 已切換到模型:', model);
+              }
+              return await res.json();
+            }
+            const errData = await res.json().catch(() => ({ error: { code: res.status } }));
+            const code = errData?.error?.code || res.status;
+            const status = errData?.error?.status || '';
+            if (code === 429 && attempt < maxRetry) {
+              let waitMs = Math.min(8000, 2000 * Math.pow(2, attempt));
+              const ri = errData?.error?.details?.find(d => d['@type']?.includes('RetryInfo'));
+              if (ri?.retryDelay) { const m = ri.retryDelay.match(/(\d+(?:\.\d+)?)s/); if (m && parseFloat(m[1]) < 10) waitMs = Math.ceil(parseFloat(m[1]) * 1000) + 200; }
+              console.log(`⏳ 429 retry ${attempt+1}/${maxRetry}, wait ${waitMs}ms`);
+              await new Promise(r => setTimeout(r, waitMs));
+              continue;
+            }
+            if (code === 404 || status === 'NOT_FOUND' || status === 'UNAVAILABLE') { lastErr = new Error('MODEL_' + code); break; }
+            if (code === 429) { lastErr = new Error('QUOTA'); break; }
+            if (code === 400 && errData?.error?.message?.includes('API key')) throw new Error('BAD_KEY');
+            throw new Error('API_' + code);
+          } catch(e) {
+            if (e.message === 'BAD_KEY' || e.message === 'QUOTA') throw e;
+            if (attempt >= maxRetry) { lastErr = e; break; }
+            await new Promise(r => setTimeout(r, 1500));
+          }
+        }
+      }
+      throw lastErr || new Error('ALL_MODELS_FAILED');
+    }
+
     function findBestVoice() {
       const voices = synth.getVoices();
       preferredVoice = voices.find(v => v.name === 'Google US English') ||
@@ -847,21 +900,15 @@ layout 可用：single(單音節)、standard(多音節)、compound(複合字如 
 JSON 範例：
 {"word":"juice","chunks":[{"text":"juice","tts":"joos","highlights":[{"target":"ui","cssClass":"color-grape-purple","hintClass":"hl-purple","note":"紫色 ui 像葡萄汁"},{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}]}],"layout":"single","fullTts":"juice","rootInfo":{"targetChunk":"juice","emoji":"🍇","title":"🍇 juice（果汁）","story":"juice 來自拉丁文 jus，就是「液體」的意思！所以果汁就是水果流出來的液體！"}}`;
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `分析：${word}` }] }],
-              systemInstruction: { parts: [{ text: sysPrompt }] },
-              generationConfig: { responseMimeType: 'application/json' }
-            })
-          }
-        );
-        const data = await res.json();
+        const data = await callGemini({
+          contents: [{ parts: [{ text: `分析：${word}` }] }],
+          systemInstruction: { parts: [{ text: sysPrompt }] },
+          generationConfig: { responseMimeType: 'application/json' }
+        }, { maxRetry: 1 });
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) return null;
         return JSON.parse(text.replace(/```json|```/g, '').trim());
-      } catch(err) { console.error('Gemini error:', err); return null; }
+      } catch(err) { console.error('Gemini error:', err.message); return null; }
     }
 
     // 智慧解析：快取 → Gemini → 靜態詞庫 → 基本
@@ -972,6 +1019,7 @@ JSON 範例：
         ta.value = LESSONS.map(l => l.word).join('\n');
       }
       document.getElementById('gemini-key-input').value = GEMINI_KEY;
+      document.getElementById('ph-current-model').textContent = GEMINI_MODEL;
     }
     function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 
@@ -1447,25 +1495,19 @@ Respond with JSON only:
 {"letters_seen": "what you read", "correct": true/false}`;
 
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [
-                { inlineData: { mimeType: 'image/png', data: imageData } },
-                { text: prompt }
-              ]}]
-            })
-          }
-        );
-        const data = await res.json();
+        const data = await callGemini({
+          contents: [{ parts: [
+            { inlineData: { mimeType: 'image/png', data: imageData } },
+            { text: prompt }
+          ]}]
+        }, { maxRetry: 1 });
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const clean = text.replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(clean);
         console.log(`OCR: target="${target}" seen="${parsed.letters_seen}" correct=${parsed.correct}`);
         return parsed.correct === true;
       } catch(err) {
-        console.error('Gemini OCR error:', err);
+        console.error('Gemini OCR error:', err.message);
         return !isCanvasBlank(canvas); // fallback
       }
     }
