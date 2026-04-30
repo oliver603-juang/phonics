@@ -11,6 +11,8 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>Phonics 拼音練習</title>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
     :root {
       --gold: #FFD700; --bg: #FFF8F0;
@@ -413,6 +415,26 @@
       margin-top: -4px; margin-bottom: 4px;
     }
 
+    /* ═══ 空白狀態 ═══ */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 60px 24px; text-align: center;
+    }
+    .empty-state .empty-emoji { font-size: 4rem; margin-bottom: 16px; }
+    .empty-state .empty-title { font-size: 1.2rem; font-weight: 700; color: #e8e8f0; margin-bottom: 8px; }
+    .empty-state .empty-desc { font-size: 0.85rem; color: #8888aa; line-height: 1.6; margin-bottom: 20px; }
+    .empty-state .empty-btn {
+      padding: 12px 28px; border: none; border-radius: 24px;
+      background: var(--gold); color: #333; font-family: inherit;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(255,215,0,0.3);
+    }
+    .sync-badge {
+      font-size: 0.5rem; color: #5b8c5a; padding: 1px 6px;
+      border-radius: 8px; background: rgba(91,140,90,0.1);
+      border: 1px solid rgba(91,140,90,0.3); margin-left: 4px;
+    }
+
     /* ═══ 載入字單 Overlay ═══ */
     .fetch-overlay {
       display: none; position: fixed; inset: 0; z-index: 10002;
@@ -581,6 +603,14 @@
         <button onclick="localStorage.removeItem('phonics-gemini-model');GEMINI_MODEL=GEMINI_MODELS[0];document.getElementById('ph-current-model').textContent=GEMINI_MODEL;" style="margin-left:6px;padding:2px 8px;border:1px solid #ddd;background:transparent;color:#888;border-radius:6px;font-size:0.6rem;cursor:pointer;">重設為 2.5</button></div>
       </div>
       <div class="section" style="padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+        <label>🔥 Firebase 雲端同步（選填）</label>
+        <input type="text" id="firebase-project-input" placeholder="你的 Firebase Project ID">
+        <div class="hint-text">
+          設定後字單會自動同步到 Firebase，跨裝置共用。<br>
+          留空則僅存在本機 localStorage。
+        </div>
+      </div>
+      <div class="section" style="padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
         <label>🧹 維護工具</label>
         <div style="display:flex;gap:8px;margin-top:6px;">
           <button class="modal-btn cancel" onclick="clearCacheReload()" style="flex:1;text-align:center;">🔄 清除快取重載</button>
@@ -588,7 +618,7 @@
         <div class="hint-text">更新程式碼後使用此按鈕載入最新版本</div>
       </div>
       <div class="modal-btns">
-        <button class="modal-btn reset-default" onclick="resetToDefault()">🔄 恢復預設字單</button>
+        <button class="modal-btn cancel" onclick="resetToDefault()" style="color:#c4614a;">🗑️ 清空字單</button>
         <button class="modal-btn cancel" onclick="closeSettings()">取消</button>
         <button class="modal-btn save" onclick="saveSettings()">✅ 儲存</button>
       </div>
@@ -610,6 +640,18 @@
     <button class="nav-btn" onclick="switchPhase(2)">🎤 開口唸</button>
     <button class="nav-btn" onclick="switchPhase(3)">✏️ 手寫</button>
   </nav>
+
+  <!-- 空白狀態 -->
+  <div class="empty-state" id="empty-state" style="display:none;">
+    <div class="empty-emoji">📝</div>
+    <div class="empty-title">還沒有字單喔！</div>
+    <div class="empty-desc">
+      點擊右上角 ⚙️ 設定<br>
+      輸入要練習的英文單字<br>
+      AI 老師會自動分析音節和字根故事
+    </div>
+    <button class="empty-btn" onclick="openSettings()">⚙️ 開始設定字單</button>
+  </div>
 
   <!-- PHASE 1 -->
   <div id="phase1" class="phase active">
@@ -678,119 +720,97 @@
     // ══════════════════════════════════════════════════════════════
     //  資料驅動核心：Phonics Lessons 資料結構
     // ══════════════════════════════════════════════════════════════
-    const DEFAULT_LESSONS = [
-      {
-        id: "word_hamburger", word: "hamburger", layout: "standard",
-        fullTts: "hamburger", syllables: "ham·burg·er",
-        chunks: [
-          { text: "ham", tts: "ham", highlights: [] },
-          { text: "burg", tts: "burg", highlights: [
-            { target: "ur", cssClass: "color-ur", hintClass: "hl-ur", note: "橘色 ur" }
-          ]},
-          { text: "er", tts: "ur", highlights: [
-            { target: "er", cssClass: "color-er-ending", hintClass: "hl-er", note: "綠色 er，字尾 er 家族" }
-          ]}
-        ],
-        rootInfo: {
-          targetChunk: "burg", emoji: "🏰",
-          title: "🏰 burg（城堡城市）",
-          root: "Hamburg（漢堡市）+ -er（來自…的）",
-          root_story: "burg 在德文是「城堡」，很多城市名都有 burg：Hamburg、Salzburg，因為以前城市都蓋在城堡旁邊！",
-          etymology_story: "hamburger 來自德國漢堡市 Hamburg，那裡的人發明了這種肉排帶到美國！跟火腿 ham 完全沒關係喔！",
-          word_family: ["Hamburg", "cheeseburger", "Salzburg"]
+    const DEFAULT_LESSONS = []; // 不再有預設字單，使用者自行輸入
+
+    // ══════════════════════════════════════════════════════════════
+    //  Firebase 初始化
+    // ══════════════════════════════════════════════════════════════
+    const firebaseConfig = {
+      apiKey: "AIzaSyDummyKeyReplaceMeWithYourOwn",
+      authDomain: "phonics-app-oliver.firebaseapp.com",
+      projectId: "phonics-app-oliver",
+      storageBucket: "phonics-app-oliver.appspot.com",
+      messagingSenderId: "000000000000",
+      appId: "1:000000000000:web:0000000000000000000000"
+    };
+    let db = null;
+    let _firebaseReady = false;
+
+    function initFirebase() {
+      try {
+        // 檢查是否已有 firebase config 存在 localStorage（使用者自訂）
+        const savedConfig = localStorage.getItem('phonics-firebase-config');
+        const config = savedConfig ? JSON.parse(savedConfig) : firebaseConfig;
+        if (!config.projectId || config.projectId === 'phonics-app-oliver') {
+          // 使用者尚未設定自己的 Firebase — 僅使用 localStorage
+          console.log('ℹ️ Firebase 未設定，使用 localStorage');
+          _firebaseReady = false;
+          return;
         }
-      },
-      {
-        id: "word_hotdog", word: "hot dog", layout: "compound",
-        fullTts: "hot dog",
-        chunks: [
-          { text: "hot", tts: "hot", highlights: [] },
-          { text: "dog", tts: "dog", highlights: [] }
-        ],
-        rootInfo: {
-          targetChunk: "dog", emoji: "🌭",
-          title: "🌭 hot dog（熱狗）",
-          root: "hot（熱的）+ dog（狗？）",
-          root_story: "hot 是「熱的」，dog 是「狗」，但熱狗裡面當然沒有狗！是因為那長長的香腸看起來像臘腸狗啦！",
-          etymology_story: "1860 年代德國移民在美國賣香腸，大家覺得那長長的香腸像臘腸狗 Dachshund，就叫它 hot dog！",
-          word_family: ["hotdog", "corndog"]
-        }
-      },
-      {
-        id: "word_water", word: "water", layout: "standard",
-        fullTts: "water", syllables: "wa·ter",
-        chunks: [
-          { text: "wa", tts: "wah", highlights: [
-            { target: "wa", cssClass: "color-water-blue", hintClass: "hl-water", note: "水藍色 💧" }
-          ]},
-          { text: "ter", tts: "tur", highlights: [
-            { target: "er", cssClass: "color-er-ending", hintClass: "hl-er", note: "綠色 er，跟 hamburger 一樣！" }
-          ]}
-        ],
-        rootInfo: {
-          targetChunk: "wa", emoji: "💧",
-          title: "💧 water（水）",
-          root: "wæter（古英文：水）",
-          root_story: "water 是超古老的字！古英文寫成 wæter，一千多年來幾乎沒變過，因為水太重要了，大家都記得住！",
-          etymology_story: "water 跟德文 Wasser、荷蘭文 water 長得超像，因為它們都是同一個日耳曼語老祖宗生出來的！",
-          word_family: ["waterfall", "watermelon", "underwater"]
-        }
-      },
-      {
-        id: "word_milk", word: "milk", layout: "single",
-        fullTts: "milk",
-        chunks: [
-          { text: "milk", tts: "milk", highlights: [] }
-        ],
-        rootInfo: {
-          targetChunk: "milk", emoji: "🥛",
-          title: "🥛 milk（牛奶）",
-          root: "meolc（古英文：奶）",
-          root_story: "milk 來自古英文 meolc，跟「擠奶」的動作有關。動詞 milk 也可以表示「擠奶」喔！一個字兩種用法！",
-          etymology_story: "古時候的人很早就開始喝牛奶了！milk 這個字已經超過一千歲，是英文裡最老的食物字之一！",
-          word_family: ["milkshake", "milky", "buttermilk"]
-        }
-      },
-      {
-        id: "word_juice", word: "juice", layout: "single",
-        fullTts: "juice",
-        chunks: [
-          { text: "juice", tts: "joos", highlights: [
-            { target: "ui", cssClass: "color-grape-purple", hintClass: "hl-purple", note: "紫色 ui，像葡萄汁 🍇" },
-            { target: "ce", cssClass: "style-silent-e", hintClass: "hl-silent", note: "灰色虛線：e 不發音，讓 c 唸 /s/" }
-          ]}
-        ],
-        rootInfo: {
-          targetChunk: "juice", emoji: "🍇",
-          title: "🍇 juice（果汁）",
-          root: "jus（拉丁文：液體/汁）",
-          root_story: "juice 的核心是拉丁文 jus，意思就是「液體、汁」。不管是果汁、肉汁，只要是擠出來的汁都叫 juice！",
-          etymology_story: "juice 先從拉丁文 jus 變成法文 jus，再傳到英文變成 juice。法國餐廳裡的 au jus 就是「配肉汁」的意思！",
-          word_family: ["juicy", "juicer"]
-        }
-      },
-      {
-        id: "word_icecream", word: "ice cream", layout: "compound",
-        fullTts: "ice cream", syllables: "ice cream",
-        chunks: [
-          { text: "ice", tts: "ice", highlights: [
-            { target: "i", cssClass: "style-magic-e", hintClass: "hl-magic", note: "Magic E：e 讓 i 唸自己的名字" },
-            { target: "e", cssClass: "style-magic-e", hintClass: "hl-magic", note: "" }
-          ]},
-          { text: "cream", tts: "cream", highlights: [
-            { target: "ea", cssClass: "color-cream-yellow", hintClass: "hl-cream", note: "奶油黃 ea，母音團隊 🍦" }
-          ]}
-        ],
-        rootInfo: {
-          targetChunk: "cream", emoji: "🍦",
-          title: "🍦 cream（奶油）",
-          root: "ice（冰）+ cream（奶油）",
-          root_story: "ice 是「冰」，cream 是「奶油」。把奶油冰凍起來，就變成冰淇淋啦！名字取得超直接！",
-          etymology_story: "cream 來自法文 crème。300 年前的人把奶油跟冰混在一起，發現超好吃，ice cream 就這樣誕生了！",
-          word_family: ["iceberg", "cream", "creamy", "sundae"]
-        }
+        firebase.initializeApp(config);
+        db = firebase.firestore();
+        _firebaseReady = true;
+        console.log('🔥 Firebase 已連線:', config.projectId);
+      } catch(e) {
+        console.warn('Firebase init failed:', e.message);
+        _firebaseReady = false;
       }
-    ];
+    }
+    initFirebase();
+
+    // Firebase 存取字單
+    async function firebaseSaveWords(userId, words) {
+      if (!_firebaseReady || !db) return;
+      try {
+        await db.collection('phonics_words').doc(userId).set({
+          words: words,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('🔥 字單已同步到 Firebase:', userId);
+      } catch(e) { console.warn('Firebase save failed:', e.message); }
+    }
+
+    async function firebaseLoadWords(userId) {
+      if (!_firebaseReady || !db) return null;
+      try {
+        const doc = await db.collection('phonics_words').doc(userId).get();
+        if (doc.exists) {
+          console.log('🔥 從 Firebase 載入字單:', userId);
+          return doc.data().words;
+        }
+      } catch(e) { console.warn('Firebase load failed:', e.message); }
+      return null;
+    }
+
+    async function firebaseSaveLessons(userId, lessons) {
+      if (!_firebaseReady || !db) return;
+      try {
+        // Firestore 文件有 1MB 限制，分批存如果太大
+        const data = JSON.stringify(lessons);
+        if (data.length > 900000) {
+          console.warn('Lessons 太大，僅儲存字單列表');
+          await firebaseSaveWords(userId, lessons.map(l => l.word));
+          return;
+        }
+        await db.collection('phonics_lessons').doc(userId).set({
+          lessons: data,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('🔥 Lessons 已同步到 Firebase:', userId);
+      } catch(e) { console.warn('Firebase save lessons failed:', e.message); }
+    }
+
+    async function firebaseLoadLessons(userId) {
+      if (!_firebaseReady || !db) return null;
+      try {
+        const doc = await db.collection('phonics_lessons').doc(userId).get();
+        if (doc.exists && doc.data().lessons) {
+          console.log('🔥 從 Firebase 載入 Lessons:', userId);
+          return JSON.parse(doc.data().lessons);
+        }
+      } catch(e) { console.warn('Firebase load lessons failed:', e.message); }
+      return null;
+    }
 
     // ══════════════════════════════════════════
     // 全域狀態
@@ -1220,7 +1240,7 @@ JSON 範例：
     // ══════════════════════════════════════════
     // 設定 Modal
     // ══════════════════════════════════════════
-    function switchUser(userId) {
+    async function switchUser(userId) {
       // 儲存當前進度
       currentUser = userId;
       try { localStorage.setItem('phonics-current-user', userId); } catch(e) {}
@@ -1230,24 +1250,71 @@ JSON 範例：
       document.getElementById('btn-' + userId).classList.add('active-user');
 
       // 載入該使用者的字單
-      loadUserLessons();
+      await loadUserLessons();
       currentWordIdx = 0;
       if (currentPhase === 3) switchPhase(1);
       renderWordPills();
-      loadCurrentWord();
+      if (LESSONS.length > 0) loadCurrentWord();
     }
 
-    function loadUserLessons() {
+    async function loadUserLessons() {
+      // 1. 嘗試從 localStorage 讀取
       try {
         const saved = localStorage.getItem('phonics-' + currentUser + '-words');
         if (saved) {
           LESSONS = JSON.parse(saved);
           usingDefaults = false;
+          showOrHideEmptyState();
+          // 背景同步：嘗試從 Firebase 拿更新版本
+          firebaseLoadLessons(currentUser).then(fbLessons => {
+            if (fbLessons && fbLessons.length > 0) {
+              const fbWords = fbLessons.map(l => l.word).join(',');
+              const localWords = LESSONS.map(l => l.word).join(',');
+              if (fbWords !== localWords) {
+                LESSONS = fbLessons;
+                usingDefaults = false;
+                try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+                renderWordPills();
+                loadCurrentWord();
+                console.log('🔥 Firebase 字單較新，已同步');
+              }
+            }
+          });
           return;
         }
       } catch(e) {}
-      LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
+
+      // 2. localStorage 沒有 → 嘗試從 Firebase 讀取
+      const fbLessons = await firebaseLoadLessons(currentUser);
+      if (fbLessons && fbLessons.length > 0) {
+        LESSONS = fbLessons;
+        usingDefaults = false;
+        try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+        showOrHideEmptyState();
+        return;
+      }
+
+      // 3. 都沒有 → 空白狀態（不再載入預設字單）
+      LESSONS = [];
       usingDefaults = true;
+      showOrHideEmptyState();
+    }
+
+    function showOrHideEmptyState() {
+      const emptyEl = document.getElementById('empty-state');
+      const phaseEls = document.querySelectorAll('.phase');
+      const navEl = document.querySelector('.nav');
+      if (LESSONS.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'flex';
+        phaseEls.forEach(el => el.style.display = 'none');
+        if (navEl) navEl.style.display = 'none';
+      } else {
+        if (emptyEl) emptyEl.style.display = 'none';
+        phaseEls.forEach(el => el.style.display = '');
+        if (navEl) navEl.style.display = '';
+        // 確保當前 phase 正確顯示
+        switchPhase(currentPhase);
+      }
     }
 
     function openSettings() {
@@ -1257,20 +1324,37 @@ JSON 範例：
       const ta = document.getElementById('word-input');
       if (LESSONS.length > 0) {
         ta.value = LESSONS.map(l => l.word).join('\n');
+      } else {
+        ta.value = '';
+        ta.placeholder = 'computer\nwater\nice cream\nbicycle';
       }
       document.getElementById('gemini-key-input').value = GEMINI_KEY;
       document.getElementById('ph-current-model').textContent = GEMINI_MODEL;
+      // Firebase config
+      const fbInput = document.getElementById('firebase-project-input');
+      if (fbInput) {
+        try {
+          const saved = localStorage.getItem('phonics-firebase-config');
+          if (saved) fbInput.value = JSON.parse(saved).projectId || '';
+        } catch(e) {}
+      }
     }
     function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 
     function resetToDefault() {
-      LESSONS = JSON.parse(JSON.stringify(DEFAULT_LESSONS));
+      if (!confirm('確定清空所有字單？')) return;
+      LESSONS = [];
       usingDefaults = true;
       try { localStorage.removeItem('phonics-' + currentUser + '-words'); } catch(e) {}
+      // 也清除 Firebase
+      if (_firebaseReady && db) {
+        db.collection('phonics_lessons').doc(currentUser).delete().catch(() => {});
+        db.collection('phonics_words').doc(currentUser).delete().catch(() => {});
+      }
       closeSettings();
       currentWordIdx = 0;
       renderWordPills();
-      loadCurrentWord();
+      showOrHideEmptyState();
     }
 
     async function saveSettings() {
@@ -1281,6 +1365,28 @@ JSON 範例：
       GEMINI_KEY = gKey;
       try { localStorage.setItem('phonics-gemini-key', gKey); } catch(e) {}
       apiUpdateBadge();
+
+      // 儲存 Firebase 設定
+      const fbProjectId = (document.getElementById('firebase-project-input')?.value || '').trim();
+      if (fbProjectId && fbProjectId !== firebaseConfig.projectId) {
+        const newConfig = {
+          apiKey: "AIzaSy" + fbProjectId.slice(0, 20), // placeholder
+          authDomain: fbProjectId + ".firebaseapp.com",
+          projectId: fbProjectId,
+          storageBucket: fbProjectId + ".appspot.com",
+          messagingSenderId: "000000000000",
+          appId: "1:000000000000:web:0000000000000000"
+        };
+        try {
+          localStorage.setItem('phonics-firebase-config', JSON.stringify(newConfig));
+          if (!_firebaseReady) {
+            firebase.initializeApp(newConfig);
+            db = firebase.firestore();
+            _firebaseReady = true;
+            console.log('🔥 Firebase 已連線:', fbProjectId);
+          }
+        } catch(e) { console.warn('Firebase config save error:', e.message); }
+      }
 
       closeSettings();
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
@@ -1311,6 +1417,10 @@ JSON 範例：
 
       usingDefaults = false;
       try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+      // 同步到 Firebase
+      firebaseSaveLessons(currentUser, LESSONS);
+      firebaseSaveWords(currentUser, LESSONS.map(l => l.word));
+      showOrHideEmptyState();
 
       currentWordIdx = 0;
       renderWordPills();
@@ -1877,7 +1987,7 @@ Respond with JSON only — an array with one object per box:
     synth.addEventListener('voiceschanged', findBestVoice);
     findBestVoice(); // 首次嘗試
 
-    window.addEventListener('load', () => {
+    window.addEventListener('load', async () => {
       try { GEMINI_KEY = localStorage.getItem('phonics-gemini-key') || ''; } catch(e) {}
 
       // 初始化 API 配額追蹤
@@ -1890,8 +2000,8 @@ Respond with JSON only — an array with one object per box:
       const userBtn = document.getElementById('btn-' + currentUser);
       if (userBtn) userBtn.classList.add('active-user');
 
-      // 載入該使用者的字單
-      loadUserLessons();
+      // 載入該使用者的字單（可能從 Firebase）
+      await loadUserLessons();
 
       // 載入 MP3 音檔清單（如果存在）
       fetch('assets/audio-manifest.json')
