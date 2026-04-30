@@ -1190,7 +1190,10 @@ JSON 範例：
         }, { maxRetry: 1 });
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) return null;
-        return JSON.parse(text.replace(/```json|```/g, '').trim());
+        let parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+        // Gemini 有時會回傳陣列 [{...}] 而不是物件 {...}
+        if (Array.isArray(parsed)) parsed = parsed[0];
+        return parsed;
       } catch(err) { console.error('Gemini error:', err.message); return null; }
     }
 
