@@ -869,7 +869,10 @@
 1. chunks：切成自然發音音節，盡量保留字根完整性（如 hamburger → ham-burg-er）。單音節字不切。
 2. tts：餵給 TTS 語音引擎的發音字串。短音節必須轉成自然發音拼寫法，防止引擎逐字拼讀：
    wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→ss
-3. rootInfo：找出最核心字根，寫 30 字以內的有趣故事，像對小學三年級學生說話。
+3. syllables：把完整單字用「·」標記音節切割位置，例如 "ham·burg·er"、"com·pu·ter"、"wa·ter"。單音節字就寫原字。這給小朋友看音節怎麼切。
+4. rootInfo：找出最核心字根或字源，寫一個 50 字以內的有趣字源故事（etymology），像對小學三年級學生說話。
+   故事應包含：字從哪個語言來的（拉丁文、希臘文、古英文、法文等）、原本的意思、跟現在意思的有趣連結。
+   例如：computer 來自拉丁文 computare，com（一起）+ putare（思考），所以電腦就是「幫你一起想事情的機器」！
 
 【Phonics 視覺標記規則 (highlights)】
 請仔細檢查每個 chunk 是否包含以下規則，有的話務必加入 highlights：
@@ -898,7 +901,7 @@ hintClass 可用：hl-ur、hl-er、hl-water、hl-purple、hl-cream、hl-magic、
 layout 可用：single(單音節)、standard(多音節)、compound(複合字如 hot dog)
 
 JSON 範例：
-{"word":"juice","chunks":[{"text":"juice","tts":"joos","highlights":[{"target":"ui","cssClass":"color-grape-purple","hintClass":"hl-purple","note":"紫色 ui 像葡萄汁"},{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}]}],"layout":"single","fullTts":"juice","rootInfo":{"targetChunk":"juice","emoji":"🍇","title":"🍇 juice（果汁）","story":"juice 來自拉丁文 jus，就是「液體」的意思！所以果汁就是水果流出來的液體！"}}`;
+{"word":"juice","syllables":"juice","chunks":[{"text":"juice","tts":"joos","highlights":[{"target":"ui","cssClass":"color-grape-purple","hintClass":"hl-purple","note":"紫色 ui 像葡萄汁"},{"target":"ce","cssClass":"style-silent-e","hintClass":"hl-silent","note":"c 遇到 e 唸 /s/，e 不發音"}]}],"layout":"single","fullTts":"juice","rootInfo":{"targetChunk":"juice","emoji":"🍇","title":"🍇 juice（果汁）","story":"juice 來自拉丁文 jus，就是「液體」的意思！所以果汁就是水果流出來的液體！"}}`;
       try {
         const data = await callGemini({
           contents: [{ parts: [{ text: `分析：${word}` }] }],
@@ -1194,7 +1197,8 @@ JSON 範例：
       const notes = lesson.chunks.flatMap(c =>
         c.highlights.filter(h => h.note).map(h => h.note)
       );
-      if (lesson.rootInfo?.title) notes.push('點 ✨ 看字根故事');
+      if (lesson.syllables) notes.unshift(`音節切割：${lesson.syllables}`);
+      if (lesson.rootInfo?.title) notes.push('點 ✨ 看字源故事');
       noteDiv.innerHTML = notes.length
         ? '💡 ' + notes.join('　')
         : '按下按鈕，聽每個音節怎麼唸！';
@@ -1316,6 +1320,7 @@ JSON 範例：
       layout.className = 'p3-layout layout-' + (lesson.layout || 'standard');
       canvasIds = [];
       const rootChunk = lesson.rootInfo?.targetChunk;
+      const totalChunks = lesson.chunks.length;
 
       lesson.chunks.forEach((chunk, ci) => {
         const cvId = `cv-${ci}`;
@@ -1324,28 +1329,22 @@ JSON 範例：
         const col = document.createElement('div');
         col.className = 'syl-col';
 
-        const letterMap = buildLetterMap(chunk.text, chunk.highlights);
-        const hintHTML = letterMap.map(lm => {
-          const cls = ['hint-letter', ...lm.hintClasses].join(' ');
-          return `<span class="${cls}">${lm.char}</span>`;
-        }).join('');
-
         const isRoot = rootChunk && chunk.text.toLowerCase() === rootChunk.toLowerCase();
         const rootBadgeHTML = isRoot
           ? `<span class="root-badge-box" onclick="showRootModal(LESSONS[currentWordIdx].rootInfo)">✨</span>`
           : '';
 
+        // No hint div — don't leak the answer
         col.innerHTML = `
           <div class="syl-box">
-            <div class="hint">${hintHTML}</div>
             <canvas id="${cvId}" data-target="${chunk.text}" data-idx="${ci}"></canvas>
             <span class="ck-icon">✅</span>
             ${rootBadgeHTML}
           </div>
           <div class="syl-btns">
-            <button class="icon-btn speak" onclick="speakChunkByIdx(${ci})">🔊</button>
-            <button class="icon-btn check" onclick="verifySingle('${cvId}')">☑️</button>
-            <button class="icon-btn erase" onclick="eraseSingle('${cvId}')">🗑️</button>
+            <button class="icon-btn speak" onclick="speakChunkByIdx(${ci})" title="聽發音">🔊</button>
+            <button class="icon-btn erase" onclick="eraseSingle('${cvId}')" title="清除">🗑️</button>
+            ${ci === totalChunks - 1 ? `<button class="icon-btn check" onclick="submitAllCanvases()" title="交卷">📤</button>` : ''}
           </div>`;
         layout.appendChild(col);
       });
@@ -1427,33 +1426,70 @@ JSON 範例：
     // ══════════════════════════════════════════
     // 驗證
     // ══════════════════════════════════════════
-    async function verifySingle(canvasId) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas || canvas.classList.contains('locked')) return;
-      if (isCanvasBlank(canvas)) {
-        canvas.classList.add('error');
-        setTimeout(() => canvas.classList.remove('error'), 500);
+    // 📤 交卷：合併所有 canvas 一次送 Gemini Vision
+    // ══════════════════════════════════════════
+    async function submitAllCanvases() {
+      const lesson = LESSONS[currentWordIdx];
+      if (!lesson) return;
+
+      // 檢查是否全空
+      const canvases = canvasIds.map(id => document.getElementById(id)).filter(Boolean);
+      const blanks = canvases.filter(c => !c.classList.contains('locked') && isCanvasBlank(c));
+      if (blanks.length === canvases.length) {
+        canvases.forEach(c => { c.classList.add('error'); setTimeout(() => c.classList.remove('error'), 500); });
         return;
       }
+
       const loader = document.getElementById('loader');
       loader.classList.add('show');
-      canvas.classList.add('checking');
-      const target = canvas.dataset.target;
-      const result = await recognizeWithGemini(canvas, target);
-      canvas.classList.remove('checking');
+      canvases.forEach(c => { if (!c.classList.contains('locked')) c.classList.add('checking'); });
+
+      const results = await recognizeAllWithGemini(lesson, canvases);
+
+      canvases.forEach(c => c.classList.remove('checking'));
       loader.classList.remove('show');
-      if (result) {
-        canvas.classList.add('locked');
-        const ci = parseInt(canvas.dataset.idx);
-        await speakChunkByIdx(ci);
+
+      if (!results) {
+        // fallback: treat non-blank as correct
+        canvases.forEach(c => { if (!isCanvasBlank(c)) c.classList.add('locked'); });
         checkAllComplete();
-      } else {
-        canvas.classList.add('error');
-        await speak('oops', 1.0);
-        await new Promise(r => setTimeout(r, 500));
-        canvas.classList.remove('error');
-        clearCanvas(canvas);
+        return;
       }
+
+      // 處理每格結果
+      for (let i = 0; i < canvases.length; i++) {
+        const cv = canvases[i];
+        if (cv.classList.contains('locked')) continue; // 已通過
+        const r = results[i];
+        if (r && r.correct) {
+          cv.classList.add('locked');
+          await speakChunkByIdx(i);
+        } else {
+          cv.classList.add('error');
+          // 顯示 OCR toast
+          if (r?.letters_seen) {
+            showOcrToast(r.letters_seen, cv.dataset.target, r.score);
+          }
+          await new Promise(resolve => setTimeout(resolve, 600));
+          cv.classList.remove('error');
+        }
+      }
+      checkAllComplete();
+    }
+
+    // 顯示辨識結果浮動提示
+    function showOcrToast(seen, expected, score) {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:16px 24px;background:#1a1a2e;color:#e8e8f0;border-radius:16px;font-size:0.95rem;font-weight:700;z-index:99999;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:popin 0.3s ease;';
+      const scoreText = score != null ? `<br><span style="font-size:0.8rem;color:#888;">分數: ${score}/100</span>` : '';
+      toast.innerHTML = `<span style="color:#FF6347;">"${seen}"</span> <span style="color:#555577;">→</span> <span style="color:#8888aa;">"${expected}"</span>${scoreText}`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    async function verifySingle(canvasId) {
+      // Kept for backward compatibility but redirects to batch submit
+      await submitAllCanvases();
     }
     function eraseSingle(id) {
       const c = document.getElementById(id);
@@ -1473,26 +1509,72 @@ JSON 範例：
       return count < (canvas.width * canvas.height * 0.005);
     }
 
-    async function recognizeWithGemini(canvas, target) {
-      if (!GEMINI_KEY) return !isCanvasBlank(canvas); // fallback
+    // ══════════════════════════════════════════
+    // 合併所有 canvas 成一張圖，一次 Gemini Vision
+    // ══════════════════════════════════════════
+    async function recognizeAllWithGemini(lesson, canvases) {
+      if (!GEMINI_KEY) return null; // fallback handled by caller
 
-      const imageData = canvas.toDataURL('image/png').split(',')[1];
+      // 合併所有 canvas 成一張橫排拼接圖
+      const gap = 8;
+      const border = 4;
+      const labelH = 32;
+      let totalW = gap;
+      let maxH = 0;
+      const infos = canvases.map((cv, i) => {
+        const w = cv.width;
+        const h = cv.height;
+        if (h > maxH) maxH = h;
+        totalW += w + gap;
+        return { cv, w, h, idx: i, target: lesson.chunks[i]?.text || '' };
+      });
+      const mergedH = maxH + labelH + border * 2;
+      const mergedCanvas = document.createElement('canvas');
+      mergedCanvas.width = totalW;
+      mergedCanvas.height = mergedH;
+      const mCtx = mergedCanvas.getContext('2d');
+      mCtx.fillStyle = '#f5f5f5';
+      mCtx.fillRect(0, 0, totalW, mergedH);
+
+      // 畫每格 + 編號標籤
+      let x = gap;
+      for (const info of infos) {
+        // 邊框
+        mCtx.strokeStyle = '#ccc';
+        mCtx.lineWidth = border;
+        mCtx.strokeRect(x - border/2, labelH - border/2, info.w + border, info.h + border);
+        // 畫布內容
+        mCtx.drawImage(info.cv, x, labelH);
+        // 編號標籤
+        mCtx.fillStyle = '#333';
+        mCtx.font = 'bold 22px sans-serif';
+        mCtx.textAlign = 'center';
+        mCtx.fillText(`#${info.idx + 1}`, x + info.w / 2, 22);
+        x += info.w + gap;
+      }
+
+      const imageData = mergedCanvas.toDataURL('image/png').split(',')[1];
+      const targets = infos.map(info => `#${info.idx + 1}: "${info.target}"`).join(', ');
       const prompt = `You are a STRICT spelling teacher checking a 9-year-old child's handwriting.
-The child must write EXACTLY these letters: "${target}"
+This image contains ${canvases.length} handwriting boxes arranged left to right, labeled #1, #2, etc.
+Each box should contain the following letters: ${targets}
 
-STEP 1: Look at the image carefully. List EACH letter you see, one by one.
-STEP 2: Compare your reading with the target "${target}" letter by letter.
-STEP 3: Judge — are ALL letters correct?
+For EACH box:
+STEP 1: Identify which box (by #number label at top).
+STEP 2: Read the handwritten letters in that box carefully.
+STEP 3: Compare with the expected target for that box.
+STEP 4: Score from 0-100 (letter correctness=70%, legibility=30%).
 
 STRICT RULES:
 - Letter identity is CRITICAL: "u" ≠ "e" ≠ "i" ≠ "a" ≠ "o"
 - "bur" written as "ber" = WRONG (different vowel)
-- "ham" written as "hem" = WRONG
 - Missing or extra letters = WRONG
-- Messy/wobbly handwriting is OK as long as the correct letters are identifiable
+- Empty/blank boxes get score 0 and correct: false
+- Messy/wobbly handwriting is OK if correct letters are identifiable (still can get 60+ score)
+- Score ≥ 60 means correct: true
 
-Respond with JSON only:
-{"letters_seen": "what you read", "correct": true/false}`;
+Respond with JSON only — an array with one object per box:
+[{"box":1,"letters_seen":"what you read","correct":true/false,"score":85}, ...]`;
 
       try {
         const data = await callGemini({
@@ -1504,11 +1586,17 @@ Respond with JSON only:
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const clean = text.replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(clean);
-        console.log(`OCR: target="${target}" seen="${parsed.letters_seen}" correct=${parsed.correct}`);
-        return parsed.correct === true;
+        console.log('OCR batch result:', parsed);
+
+        // 轉成以 index 為 key 的結果
+        const resultMap = {};
+        if (Array.isArray(parsed)) {
+          parsed.forEach(r => { resultMap[r.box - 1] = r; });
+        }
+        return canvases.map((_, i) => resultMap[i] || { correct: false, letters_seen: '?', score: 0 });
       } catch(err) {
-        console.error('Gemini OCR error:', err.message);
-        return !isCanvasBlank(canvas); // fallback
+        console.error('Gemini batch OCR error:', err.message);
+        return null; // fallback
       }
     }
 
