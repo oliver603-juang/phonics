@@ -458,6 +458,16 @@
       font-size: 1rem; font-weight: 600; cursor: pointer;
       box-shadow: 0 4px 16px rgba(255,215,0,0.3);
     }
+    .preset-section { margin-top: 10px; }
+    .preset-label { font-size: 0.72rem; color: #888; margin-bottom: 6px; }
+    .preset-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: 5px 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px;
+      background: rgba(255,255,255,0.05); color: #aaa; font-family: inherit;
+      font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .preset-btn:active { transform: scale(0.95); }
+    .preset-btn:hover { border-color: var(--gold); color: var(--gold); }
     .sync-badge {
       font-size: 0.5rem; color: #5b8c5a; padding: 1px 6px;
       border-radius: 8px; background: rgba(91,140,90,0.1);
@@ -627,6 +637,17 @@
           詞庫會自動切音節並套用顏色標記<br>
           詞庫外的字可用 - 手動切：syl-la-ble
         </div>
+        <div class="preset-section">
+          <div class="preset-label">📚 快速載入預設字單：</div>
+          <div class="preset-btns">
+            <button class="preset-btn" onclick="loadPreset1200('all')">📚 國小 1200 字 (全部)</button>
+            <button class="preset-btn" onclick="loadPreset1200('a-d')">A–D (約250字)</button>
+            <button class="preset-btn" onclick="loadPreset1200('e-h')">E–H (約200字)</button>
+            <button class="preset-btn" onclick="loadPreset1200('i-n')">I–N (約200字)</button>
+            <button class="preset-btn" onclick="loadPreset1200('o-s')">O–S (約250字)</button>
+            <button class="preset-btn" onclick="loadPreset1200('t-z')">T–Z (約170字)</button>
+          </div>
+        </div>
       </div>
       <div class="section">
         <label>🧠 Gemini API Key（AI 音節分析 + 字根故事 + 手寫辨識）</label>
@@ -683,11 +704,18 @@
     <div class="empty-emoji">📝</div>
     <div class="empty-title">還沒有字單喔！</div>
     <div class="empty-desc">
-      點擊右上角 ⚙️ 設定<br>
-      輸入要練習的英文單字<br>
-      AI 老師會自動分析音節和字根故事
+      點擊右上角 ⚙️ 自訂字單<br>
+      或直接選擇國小字單開始練習
     </div>
-    <button class="empty-btn" onclick="openSettings()">⚙️ 開始設定字單</button>
+    <button class="empty-btn" onclick="quickLoad1200('a-d')" style="margin-bottom:8px;">🚀 快速開始：國小字單 A–D (約250字)</button>
+    <div class="preset-btns" style="justify-content:center; margin-bottom:12px;">
+      <button class="preset-btn" onclick="quickLoad1200('e-h')">E–H</button>
+      <button class="preset-btn" onclick="quickLoad1200('i-n')">I–N</button>
+      <button class="preset-btn" onclick="quickLoad1200('o-s')">O–S</button>
+      <button class="preset-btn" onclick="quickLoad1200('t-z')">T–Z</button>
+      <button class="preset-btn" onclick="quickLoad1200('all')">📚 全部 1200</button>
+    </div>
+    <button class="empty-btn" onclick="openSettings()" style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:#aaa;font-size:0.85rem;box-shadow:none;">⚙️ 自訂字單</button>
   </div>
 
   <!-- PHASE 1 -->
@@ -765,6 +793,7 @@
     <div class="fo-status" id="fo-status">準備中...</div>
   </div>
 
+  <script src="words-1200.js"></script>
   <script src="phonics-dict.js"></script>
   <script>
     // ══════════════════════════════════════════════════════════════
@@ -1559,6 +1588,83 @@ JSON 範例：
         // 確保當前 phase 正確顯示
         switchPhase(currentPhase);
       }
+    }
+
+    // 國小 1200 字預設字單載入（填入 textarea）
+    function loadPreset1200(range) {
+      if (typeof WORDS_1200 === 'undefined') { alert('words-1200.js 未載入'); return; }
+      const ta = document.getElementById('word-input');
+      let words = filterWordsByRange(range);
+      const existing = ta.value.trim();
+      if (existing && !confirm('要替換目前的字單嗎？\n選「取消」會附加到現有字單後面。')) {
+        const existSet = new Set(existing.split('\n').map(l => l.trim().toLowerCase()));
+        const newWords = words.filter(w => !existSet.has(w.toLowerCase()));
+        ta.value = existing + '\n' + newWords.join('\n');
+      } else {
+        ta.value = words.join('\n');
+      }
+      ta.scrollTop = 0;
+    }
+
+    // 快速載入（從空白狀態直接儲存，不開設定頁）
+    async function quickLoad1200(range) {
+      if (typeof WORDS_1200 === 'undefined') { alert('words-1200.js 未載入'); return; }
+      if (!GEMINI_KEY) {
+        // 沒有 Key 就導向設定頁，預填字單
+        openSettings();
+        loadPreset1200(range);
+        return;
+      }
+      const words = filterWordsByRange(range);
+      if (!confirm(`要載入 ${words.length} 個字嗎？\nAI 會逐一分析（已分析過的字會從雲端快取載入）。`)) return;
+
+      // 直接開始分析
+      const overlay = document.getElementById('fetch-overlay');
+      const foWord = document.getElementById('fo-word');
+      const foFill = document.getElementById('fo-fill');
+      const foStatus = document.getElementById('fo-status');
+      overlay.classList.add('show');
+
+      // 先從 Firebase 預熱快取
+      foStatus.textContent = '☁️ 從雲端載入快取...';
+      await warmLocalCacheFromFirebase(words);
+
+      LESSONS = [];
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        foWord.textContent = word;
+        foFill.style.width = `${(i / words.length) * 100}%`;
+        const cached = getCache(word);
+        foStatus.textContent = cached ? '✅ 快取命中' : (GEMINI_KEY ? '🧠 AI 分析中...' : '📖 查詢詞庫...');
+        const lesson = await resolveWord(word);
+        LESSONS.push(lesson);
+      }
+
+      foFill.style.width = '100%';
+      foStatus.textContent = '✅ 全部完成！';
+      await new Promise(r => setTimeout(r, 400));
+      overlay.classList.remove('show');
+
+      usingDefaults = false;
+      try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+      firebaseSaveWords(currentUser, LESSONS.map(l => l.word));
+      const newCache = {};
+      LESSONS.forEach(l => { if (l.word) newCache[l.word] = l; });
+      firebaseCacheBatchSave(newCache);
+      showOrHideEmptyState();
+      currentWordIdx = 0;
+      renderWordPills();
+      loadCurrentWord();
+    }
+
+    function filterWordsByRange(range) {
+      const ranges = {
+        'a-d': /^[a-dA-D]/, 'e-h': /^[e-hE-H]/, 'i-n': /^[i-nI-N]/,
+        'o-s': /^[o-sO-S]/, 't-z': /^[t-zT-Z]/
+      };
+      if (range === 'all') return WORDS_1200.slice();
+      const re = ranges[range];
+      return re ? WORDS_1200.filter(w => re.test(w)) : WORDS_1200.slice();
     }
 
     function openSettings() {
