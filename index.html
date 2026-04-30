@@ -726,12 +726,12 @@
     //  Firebase 初始化
     // ══════════════════════════════════════════════════════════════
     const firebaseConfig = {
-      apiKey: "AIzaSyDummyKeyReplaceMeWithYourOwn",
-      authDomain: "phonics-app-oliver.firebaseapp.com",
-      projectId: "phonics-app-oliver",
-      storageBucket: "phonics-app-oliver.appspot.com",
-      messagingSenderId: "000000000000",
-      appId: "1:000000000000:web:0000000000000000000000"
+      apiKey: "AIzaSyDCsiiQ6xn2NyHBG6z8rSROBE7BqOppF0E",
+      authDomain: "phonics-app-28eac.firebaseapp.com",
+      projectId: "phonics-app-28eac",
+      storageBucket: "phonics-app-28eac.firebasestorage.app",
+      messagingSenderId: "865864812657",
+      appId: "1:865864812657:web:be76767ef9e61506ff73d0"
     };
     let db = null;
     let _firebaseReady = false;
@@ -741,8 +741,7 @@
         // 檢查是否已有 firebase config 存在 localStorage（使用者自訂）
         const savedConfig = localStorage.getItem('phonics-firebase-config');
         const config = savedConfig ? JSON.parse(savedConfig) : firebaseConfig;
-        if (!config.projectId || config.projectId === 'phonics-app-oliver') {
-          // 使用者尚未設定自己的 Firebase — 僅使用 localStorage
+        if (!config.projectId) {
           console.log('ℹ️ Firebase 未設定，使用 localStorage');
           _firebaseReady = false;
           return;
