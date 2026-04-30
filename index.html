@@ -386,6 +386,32 @@
     .root-modal .root-etymology {
       background: #E8F4FD;
     }
+    .root-modal .root-grammar {
+      background: #F3E8FD; font-size: 0.85rem;
+      user-select: text; -webkit-user-select: text;
+    }
+    .root-modal .grammar-pos {
+      display: inline-block; padding: 2px 10px; border-radius: 10px;
+      background: #9B59B6; color: white; font-size: 0.75rem;
+      font-weight: 700; margin-bottom: 6px;
+    }
+    .root-modal .grammar-note { color: #777; font-size: 0.78rem; margin-bottom: 4px; }
+    .root-modal .grammar-example {
+      font-style: italic; color: #555; margin: 4px 0 2px;
+    }
+    .root-modal .grammar-example-tw { color: #888; font-size: 0.8rem; }
+    .root-modal .grammar-inflections {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    }
+    .root-modal .grammar-tag {
+      padding: 2px 8px; border-radius: 8px; font-size: 0.72rem;
+      background: #EDE7F6; color: #5E35B1; font-weight: 600;
+    }
+    .root-modal .grammar-phrasal {
+      margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(155,89,182,0.2);
+      font-size: 0.8rem;
+    }
+    .root-modal .grammar-phrasal span { color: #8E44AD; font-weight: 600; }
     .root-modal .root-family-section { margin-bottom: 10px; text-align: left; }
     .root-modal .root-family-words {
       display: flex; flex-wrap: wrap; gap: 6px; padding: 4px;
@@ -522,6 +548,14 @@
     .root-modal .root-section-label { color: #555577; }
     .root-modal .root-story { background: #16213e; color: #8888aa; }
     .root-modal .root-etymology { background: #162030; }
+    .root-modal .root-grammar { background: #1e1630; color: #8888aa; }
+    .root-modal .grammar-pos { background: #7B2D8E; }
+    .root-modal .grammar-note { color: #666688; }
+    .root-modal .grammar-example { color: #8888aa; }
+    .root-modal .grammar-example-tw { color: #666688; }
+    .root-modal .grammar-tag { background: #2a1e3e; color: #B39DDB; }
+    .root-modal .grammar-phrasal { border-top-color: rgba(155,89,182,0.15); }
+    .root-modal .grammar-phrasal span { color: #B39DDB; }
     .root-modal .root-close { background: var(--gold); color: #1a1a2e; }
     .root-modal .root-listen { background: #16213e; color: #e94560; }
     .root-modal .family-word { background: #16213e; color: var(--color-ur); }
@@ -710,6 +744,10 @@
       <div class="root-family-section" id="root-ant-section" style="display:none;">
         <div class="root-section-label">🔄 反義字</div>
         <div class="root-family-words" id="root-antonyms"></div>
+      </div>
+      <div class="root-section" id="root-grammar-section" style="display:none;">
+        <div class="root-section-label">📝 文法小教室</div>
+        <div class="root-story root-grammar" id="root-grammar"></div>
       </div>
       <div class="root-actions">
         <button class="root-listen" onclick="readRootStory()">🔊 唸給我聽</button>
@@ -1108,6 +1146,14 @@
 - etymology_story 重點在「歷史」：這個字從哪個語言來的、以前的人怎麼用、有什麼好玩的由來
 【再次強調】rootInfo 是必填欄位！不管什麼字都要有！
 
+5. grammar：文法資訊（必填！每個字都要有）。用繁體中文，語氣像跟小學生說話。
+   - pos：詞性，用中文寫，如 "名詞 n."、"動詞 v."、"形容詞 adj."、"介係詞 prep."。如果有多種詞性就寫最常用的。
+   - pos_note：詞性小提醒，20 字以內。如 "可數名詞，複數加 -es" 或 "及物動詞，後面要接受詞"
+   - inflections：屈折變化，用 JSON 物件。動詞給 {"past":"ran","pastPart":"run","ing":"running"}，名詞給 {"plural":"dresses"}，形容詞給 {"comparative":"bigger","superlative":"biggest"}。沒有變化的就給 {}
+   - example：一個簡短的例句（英文），15 字以內，用小朋友能懂的情境。如 "I like my new dress."
+   - example_tw：例句的繁體中文翻譯。如 "我喜歡我的新洋裝。"
+   - phrasal_verbs：常見片語動詞或慣用語陣列（0~3 個），格式 [{"phrase":"put on","meaning":"穿上"}]。不是動詞或沒有常見片語就給 []
+
 【Phonics 視覺標記規則 (highlights)】
 請仔細檢查每個 chunk 是否包含以下規則，有的話務必加入 highlights：
 
@@ -1135,7 +1181,7 @@ hintClass 可用：hl-ur、hl-er、hl-water、hl-purple、hl-cream、hl-magic、
 layout 可用：single(單音節)、standard(多音節)、compound(複合字如 hot dog)
 
 JSON 範例：
-{"word":"bicycle","syllables":"bi·cy·cle","chunks":[{"text":"bi","tts":"bye","highlights":[]},{"text":"cy","tts":"sigh","highlights":[]},{"text":"cle","tts":"kul","highlights":[]}],"layout":"standard","fullTts":"bicycle","rootInfo":{"targetChunk":"cy","emoji":"🚲","title":"🚲 cycle（輪子）","root":"bi-（兩個）+ cycle（圓圈/輪子）","root_story":"bi- 就像雙胞胎代表「兩個」，cycle 是圓圓的輪子，兩個輪子轉呀轉就是腳踏車！","etymology_story":"以前的腳踏車前輪超大後輪超小，長得很搞笑！法國人叫它 bicyclette，傳到英文變成 bicycle。","word_family":["bicycle","recycle","cyclone","tricycle"],"synonyms":["bike","cycle"],"antonyms":[]}}`;
+{"word":"bicycle","syllables":"bi·cy·cle","chunks":[{"text":"bi","tts":"bye","highlights":[]},{"text":"cy","tts":"sigh","highlights":[]},{"text":"cle","tts":"kul","highlights":[]}],"layout":"standard","fullTts":"bicycle","rootInfo":{"targetChunk":"cy","emoji":"🚲","title":"🚲 cycle（輪子）","root":"bi-（兩個）+ cycle（圓圈/輪子）","root_story":"bi- 就像雙胞胎代表「兩個」，cycle 是圓圓的輪子，兩個輪子轉呀轉就是腳踏車！","etymology_story":"以前的腳踏車前輪超大後輪超小，長得很搞笑！法國人叫它 bicyclette，傳到英文變成 bicycle。","word_family":["bicycle","recycle","cyclone","tricycle"],"synonyms":["bike","cycle"],"antonyms":[]},"grammar":{"pos":"名詞 n.","pos_note":"可數名詞，複數加 -s","inflections":{"plural":"bicycles"},"example":"I ride my bicycle to school.","example_tw":"我騎腳踏車上學。","phrasal_verbs":[]}}`;
       try {
         const data = await callGemini({
           contents: [{ parts: [{ text: `分析：${word}` }] }],
@@ -1192,9 +1238,11 @@ JSON 範例：
     // 字根字源延伸學習 Modal
     // ══════════════════════════════════════════
     let currentRootInfo = null;
-    function showRootModal(rootInfo) {
+    let currentLesson = null;
+    function showRootModal(rootInfo, lesson) {
       if (!rootInfo) return;
       currentRootInfo = rootInfo;
+      currentLesson = lesson || null;
       document.getElementById('root-emoji').textContent = rootInfo.emoji || '✨';
       document.getElementById('root-title').textContent = rootInfo.title || '';
 
@@ -1232,7 +1280,50 @@ JSON 範例：
       // 反義字
       populateWordTags('root-ant-section', 'root-antonyms', rootInfo.antonyms);
 
+      // 文法小教室
+      renderGrammarSection(currentLesson?.grammar);
+
       document.getElementById('root-modal').classList.add('open');
+    }
+
+    function renderGrammarSection(grammar) {
+      const section = document.getElementById('root-grammar-section');
+      const container = document.getElementById('root-grammar');
+      if (!grammar || !grammar.pos) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+
+      let html = '';
+      // 詞性標籤
+      html += `<span class="grammar-pos">${grammar.pos}</span>`;
+      if (grammar.pos_note) html += `<div class="grammar-note">${grammar.pos_note}</div>`;
+
+      // 屈折變化
+      const inf = grammar.inflections;
+      if (inf && Object.keys(inf).length > 0) {
+        html += '<div class="grammar-inflections">';
+        const labels = { plural: '複數', past: '過去式', pastPart: '過去分詞', ing: '現在分詞', comparative: '比較級', superlative: '最高級' };
+        for (const [k, v] of Object.entries(inf)) {
+          if (v) html += `<span class="grammar-tag">${labels[k] || k}: ${v}</span>`;
+        }
+        html += '</div>';
+      }
+
+      // 例句
+      if (grammar.example) {
+        html += `<div class="grammar-example">${grammar.example}</div>`;
+        if (grammar.example_tw) html += `<div class="grammar-example-tw">${grammar.example_tw}</div>`;
+      }
+
+      // 片語動詞
+      if (grammar.phrasal_verbs?.length) {
+        html += '<div class="grammar-phrasal">';
+        grammar.phrasal_verbs.forEach(pv => {
+          html += `<span>${pv.phrase}</span> ${pv.meaning}　`;
+        });
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
     }
 
     function populateWordTags(sectionId, containerId, words) {
@@ -1271,7 +1362,14 @@ JSON 範例：
       const family = currentRootInfo.word_family?.length ? '同根字：' + currentRootInfo.word_family.join(', ') + '\n' : '';
       const syn = currentRootInfo.synonyms?.length ? '同義字：' + currentRootInfo.synonyms.join(', ') + '\n' : '';
       const ant = currentRootInfo.antonyms?.length ? '反義字：' + currentRootInfo.antonyms.join(', ') + '\n' : '';
-      const text = title + '\n' + root + story1 + story2 + family + syn + ant;
+      let grammarText = '';
+      if (currentLesson?.grammar?.pos) {
+        const g = currentLesson.grammar;
+        grammarText = '文法：' + g.pos + (g.pos_note ? '（' + g.pos_note + '）' : '') + '\n';
+        if (g.example) grammarText += '例句：' + g.example + '\n';
+        if (g.example_tw) grammarText += '翻譯：' + g.example_tw + '\n';
+      }
+      const text = title + '\n' + root + story1 + story2 + family + syn + ant + grammarText;
 
       if (navigator.share) {
         navigator.share({ title: title, text: text }).catch(() => {});
@@ -1559,7 +1657,7 @@ JSON 範例：
       // 整個單字可點擊打開延伸學習
       if (hasRootInfo) {
         container.classList.add('tappable');
-        container.onclick = () => showRootModal(lesson.rootInfo);
+        container.onclick = () => showRootModal(lesson.rootInfo, lesson);
       } else {
         container.classList.remove('tappable');
         container.onclick = null;
@@ -1583,7 +1681,7 @@ JSON 範例：
           const badge = document.createElement('span');
           badge.className = 'root-badge';
           badge.textContent = '✨';
-          badge.onclick = (e) => { e.stopPropagation(); showRootModal(lesson.rootInfo); };
+          badge.onclick = (e) => { e.stopPropagation(); showRootModal(lesson.rootInfo, lesson); };
           group.appendChild(badge);
         }
 
@@ -1767,7 +1865,7 @@ JSON 範例：
 
         const isRoot = rootChunk && chunk.text.toLowerCase() === rootChunk.toLowerCase();
         const rootBadgeHTML = isRoot
-          ? `<span class="root-badge-box" onclick="showRootModal(LESSONS[currentWordIdx].rootInfo)">✨</span>`
+          ? `<span class="root-badge-box" onclick="showRootModal(LESSONS[currentWordIdx].rootInfo, LESSONS[currentWordIdx])">✨</span>`
           : '';
 
         // No hint div — don't leak the answer
