@@ -807,7 +807,7 @@
     }
     initFirebase();
 
-    // Firebase 存取字單
+    // Firebase 存取：使用者字單（小資料）
     async function firebaseSaveWords(userId, words) {
       if (!_firebaseReady || !db) return;
       try {
@@ -815,8 +815,8 @@
           words: words,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        console.log('🔥 字單已同步到 Firebase:', userId);
-      } catch(e) { console.warn('Firebase save failed:', e.message); }
+        console.log('🔥 字單已同步到 Firebase:', userId, words.length, '字');
+      } catch(e) { console.warn('Firebase save words failed:', e.message); }
     }
 
     async function firebaseLoadWords(userId) {
@@ -827,38 +827,76 @@
           console.log('🔥 從 Firebase 載入字單:', userId);
           return doc.data().words;
         }
-      } catch(e) { console.warn('Firebase load failed:', e.message); }
+      } catch(e) { console.warn('Firebase load words failed:', e.message); }
       return null;
     }
 
-    async function firebaseSaveLessons(userId, lessons) {
+    // Firebase 全域快取：每個字一個文件，所有使用者共用
+    async function firebaseCacheSave(word, data) {
       if (!_firebaseReady || !db) return;
       try {
-        // Firestore 文件有 1MB 限制，分批存如果太大
-        const data = JSON.stringify(lessons);
-        if (data.length > 900000) {
-          console.warn('Lessons 太大，僅儲存字單列表');
-          await firebaseSaveWords(userId, lessons.map(l => l.word));
-          return;
-        }
-        await db.collection('phonics_lessons').doc(userId).set({
-          lessons: data,
+        const key = word.toLowerCase().replace(/[\s\.\']/g, '-');
+        await db.collection('phonics_cache').doc(key).set({
+          word: word,
+          data: JSON.stringify(data),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        console.log('🔥 Lessons 已同步到 Firebase:', userId);
-      } catch(e) { console.warn('Firebase save lessons failed:', e.message); }
+      } catch(e) { console.warn('Firebase cache save failed:', word, e.message); }
     }
 
-    async function firebaseLoadLessons(userId) {
+    async function firebaseCacheLoad(word) {
       if (!_firebaseReady || !db) return null;
       try {
-        const doc = await db.collection('phonics_lessons').doc(userId).get();
-        if (doc.exists && doc.data().lessons) {
-          console.log('🔥 從 Firebase 載入 Lessons:', userId);
-          return JSON.parse(doc.data().lessons);
+        const key = word.toLowerCase().replace(/[\s\.\']/g, '-');
+        const doc = await db.collection('phonics_cache').doc(key).get();
+        if (doc.exists && doc.data().data) {
+          return JSON.parse(doc.data().data);
         }
-      } catch(e) { console.warn('Firebase load lessons failed:', e.message); }
+      } catch(e) { console.warn('Firebase cache load failed:', word, e.message); }
       return null;
+    }
+
+    // 批次從 Firebase 載入多個字的快取（減少 Firestore 讀取次數）
+    async function firebaseCacheBatchLoad(words) {
+      if (!_firebaseReady || !db || !words.length) return {};
+      const result = {};
+      try {
+        // Firestore 批次查詢限制 30 個 document
+        const batchSize = 30;
+        for (let i = 0; i < words.length; i += batchSize) {
+          const batch = words.slice(i, i + batchSize);
+          const keys = batch.map(w => w.toLowerCase().replace(/[\s\.\']/g, '-'));
+          // 用 getAll 等效：逐一 get（Firestore compat SDK 沒有 getAll）
+          const promises = keys.map((key, idx) =>
+            db.collection('phonics_cache').doc(key).get().then(doc => {
+              if (doc.exists && doc.data().data) {
+                result[batch[idx].toLowerCase()] = JSON.parse(doc.data().data);
+              }
+            }).catch(() => {})
+          );
+          await Promise.all(promises);
+        }
+        const found = Object.keys(result).length;
+        if (found > 0) console.log('🔥 Firebase 快取命中:', found + '/' + words.length, '字');
+      } catch(e) { console.warn('Firebase batch load failed:', e.message); }
+      return result;
+    }
+
+    // 批次儲存多個字到 Firebase（背景非同步）
+    function firebaseCacheBatchSave(cacheMap) {
+      if (!_firebaseReady || !db) return;
+      const entries = Object.entries(cacheMap);
+      if (!entries.length) return;
+      // 背景逐一存，不阻塞 UI
+      let saved = 0;
+      entries.forEach(([word, data]) => {
+        firebaseCacheSave(word, data).then(() => {
+          saved++;
+          if (saved === entries.length) {
+            console.log('🔥 Firebase 快取已全部同步:', saved, '字');
+          }
+        });
+      });
     }
 
     // ══════════════════════════════════════════
@@ -1113,6 +1151,26 @@
         c[word.toLowerCase()] = data;
         localStorage.setItem('phonics-ai-cache', JSON.stringify(c));
       } catch(e) {}
+      // 背景同步到 Firebase（非阻塞）
+      firebaseCacheSave(word, data);
+    }
+    // 從 Firebase 批次預熱本地快取（用於新裝置首次載入）
+    async function warmLocalCacheFromFirebase(words) {
+      if (!_firebaseReady) return 0;
+      const localCache = JSON.parse(localStorage.getItem('phonics-ai-cache') || '{}');
+      const missing = words.filter(w => !localCache[w.toLowerCase()]);
+      if (!missing.length) return 0;
+      console.log('☁️ 本地缺少', missing.length, '字，從 Firebase 載入...');
+      const fbData = await firebaseCacheBatchLoad(missing);
+      const fbCount = Object.keys(fbData).length;
+      if (fbCount > 0) {
+        Object.entries(fbData).forEach(([word, data]) => {
+          localCache[word] = data;
+        });
+        try { localStorage.setItem('phonics-ai-cache', JSON.stringify(localCache)); } catch(e) {}
+        console.log('☁️ 已從 Firebase 預熱', fbCount, '字到本地快取');
+      }
+      return fbCount;
     }
 
     // ══════════════════════════════════════════
@@ -1431,26 +1489,21 @@ JSON 範例：
     }
 
     async function loadUserLessons() {
-      // 1. 嘗試從 localStorage 讀取
+      // 1. 嘗試從 localStorage 讀取已組裝好的 lessons
       try {
         const saved = localStorage.getItem('phonics-' + currentUser + '-words');
         if (saved) {
           LESSONS = JSON.parse(saved);
-          LESSONS.forEach(ensureRootInfo); // 確保每個字都有 rootInfo
+          LESSONS.forEach(ensureRootInfo);
           usingDefaults = false;
           showOrHideEmptyState();
-          // 背景同步：嘗試從 Firebase 拿更新版本
-          firebaseLoadLessons(currentUser).then(fbLessons => {
-            if (fbLessons && fbLessons.length > 0) {
-              const fbWords = fbLessons.map(l => l.word).join(',');
+          // 背景同步：從 Firebase 檢查是否有不同的字單
+          firebaseLoadWords(currentUser).then(async fbWords => {
+            if (fbWords && fbWords.length > 0) {
               const localWords = LESSONS.map(l => l.word).join(',');
-              if (fbWords !== localWords) {
-                LESSONS = fbLessons;
-                LESSONS.forEach(ensureRootInfo);
-                usingDefaults = false;
-                try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
-                renderWordPills();
-                loadCurrentWord();
+              if (fbWords.join(',') !== localWords) {
+                // 字單不同 → 用 Firebase 字單重新組裝
+                await rebuildLessonsFromWords(fbWords);
                 console.log('🔥 Firebase 字單較新，已同步');
               }
             }
@@ -1459,21 +1512,36 @@ JSON 範例：
         }
       } catch(e) {}
 
-      // 2. localStorage 沒有 → 嘗試從 Firebase 讀取
-      const fbLessons = await firebaseLoadLessons(currentUser);
-      if (fbLessons && fbLessons.length > 0) {
-        LESSONS = fbLessons;
-        LESSONS.forEach(ensureRootInfo);
-        usingDefaults = false;
-        try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+      // 2. localStorage 沒有 → 嘗試從 Firebase 讀取字單
+      const fbWords = await firebaseLoadWords(currentUser);
+      if (fbWords && fbWords.length > 0) {
+        await rebuildLessonsFromWords(fbWords);
         showOrHideEmptyState();
         return;
       }
 
-      // 3. 都沒有 → 空白狀態（不再載入預設字單）
+      // 3. 都沒有 → 空白狀態
       LESSONS = [];
       usingDefaults = true;
       showOrHideEmptyState();
+    }
+
+    // 從字單列表重建 LESSONS（先從 Firebase 全域快取批次載入）
+    async function rebuildLessonsFromWords(words) {
+      // 先預熱：批次從 Firebase 全域快取載入到 localStorage
+      await warmLocalCacheFromFirebase(words);
+
+      // 用 resolveWord 逐一組裝（會自動查本地快取 → Gemini → 靜態詞庫）
+      LESSONS = [];
+      for (const word of words) {
+        const lesson = await resolveWord(word);
+        LESSONS.push(lesson);
+      }
+      LESSONS.forEach(ensureRootInfo);
+      usingDefaults = false;
+      try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+      renderWordPills();
+      if (LESSONS.length > 0) loadCurrentWord();
     }
 
     function showOrHideEmptyState() {
@@ -1522,9 +1590,8 @@ JSON 範例：
       LESSONS = [];
       usingDefaults = true;
       try { localStorage.removeItem('phonics-' + currentUser + '-words'); } catch(e) {}
-      // 也清除 Firebase
+      // 也清除 Firebase 字單（不清除全域快取，其他使用者可能還需要）
       if (_firebaseReady && db) {
-        db.collection('phonics_lessons').doc(currentUser).delete().catch(() => {});
         db.collection('phonics_words').doc(currentUser).delete().catch(() => {});
       }
       closeSettings();
@@ -1593,9 +1660,12 @@ JSON 範例：
 
       usingDefaults = false;
       try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
-      // 同步到 Firebase
-      firebaseSaveLessons(currentUser, LESSONS);
+      // 同步到 Firebase：字單列表 + 全域快取
       firebaseSaveWords(currentUser, LESSONS.map(l => l.word));
+      // 把新分析的字全部存到 Firebase 全域快取
+      const newCache = {};
+      LESSONS.forEach(l => { if (l.word) newCache[l.word] = l; });
+      firebaseCacheBatchSave(newCache);
       showOrHideEmptyState();
 
       currentWordIdx = 0;
