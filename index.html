@@ -691,11 +691,11 @@
       <div class="root-emoji" id="root-emoji">🏰</div>
       <div class="root-title" id="root-title"></div>
       <div class="root-formula" id="root-formula"></div>
-      <div class="root-section">
+      <div class="root-section" id="root-section-root">
         <div class="root-section-label">🔍 字根拆解</div>
         <div class="root-story" id="root-story"></div>
       </div>
-      <div class="root-section">
+      <div class="root-section" id="root-section-etym">
         <div class="root-section-label">📜 字源故事</div>
         <div class="root-story root-etymology" id="root-etymology"></div>
       </div>
@@ -1335,6 +1335,7 @@ JSON 範例：
         const saved = localStorage.getItem('phonics-' + currentUser + '-words');
         if (saved) {
           LESSONS = JSON.parse(saved);
+          LESSONS.forEach(ensureRootInfo); // 確保每個字都有 rootInfo
           usingDefaults = false;
           showOrHideEmptyState();
           // 背景同步：嘗試從 Firebase 拿更新版本
@@ -1344,6 +1345,7 @@ JSON 範例：
               const localWords = LESSONS.map(l => l.word).join(',');
               if (fbWords !== localWords) {
                 LESSONS = fbLessons;
+                LESSONS.forEach(ensureRootInfo);
                 usingDefaults = false;
                 try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
                 renderWordPills();
@@ -1360,6 +1362,7 @@ JSON 範例：
       const fbLessons = await firebaseLoadLessons(currentUser);
       if (fbLessons && fbLessons.length > 0) {
         LESSONS = fbLessons;
+        LESSONS.forEach(ensureRootInfo);
         usingDefaults = false;
         try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
         showOrHideEmptyState();
