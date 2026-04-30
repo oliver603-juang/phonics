@@ -364,11 +364,13 @@
     .root-modal .root-emoji { font-size: 2.8rem; margin-bottom: 4px; }
     .root-modal .root-title {
       font-size: 1.2rem; font-weight: 700; color: #333; margin-bottom: 6px;
+      user-select: text; -webkit-user-select: text;
     }
     .root-modal .root-formula {
       font-size: 0.85rem; font-weight: 600; color: #e94560;
       background: #FFF0F3; padding: 6px 14px; border-radius: 12px;
       display: inline-block; margin-bottom: 12px;
+      user-select: text; -webkit-user-select: text;
     }
     .root-modal .root-section { margin-bottom: 10px; text-align: left; }
     .root-modal .root-section-label {
@@ -379,6 +381,7 @@
     .root-modal .root-story {
       font-size: 0.92rem; color: #555; line-height: 1.65;
       padding: 12px 14px; background: #FFF8E1; border-radius: 14px;
+      user-select: text; -webkit-user-select: text;
     }
     .root-modal .root-etymology {
       background: #E8F4FD;
@@ -700,8 +703,17 @@
         <div class="root-section-label">👨‍👩‍👧‍👦 同根字家族</div>
         <div class="root-family-words" id="root-family-words"></div>
       </div>
+      <div class="root-family-section" id="root-syn-section" style="display:none;">
+        <div class="root-section-label">🟰 同義字</div>
+        <div class="root-family-words" id="root-synonyms"></div>
+      </div>
+      <div class="root-family-section" id="root-ant-section" style="display:none;">
+        <div class="root-section-label">🔄 反義字</div>
+        <div class="root-family-words" id="root-antonyms"></div>
+      </div>
       <div class="root-actions">
         <button class="root-listen" onclick="readRootStory()">🔊 唸給我聽</button>
+        <button class="root-listen" onclick="shareRootInfo()" style="background:#E8F0FE;">📤 分享</button>
         <button class="root-close" onclick="closeRootModal()">知道了！</button>
       </div>
     </div>
@@ -1077,18 +1089,24 @@
 2. tts：餵給 TTS 語音引擎的發音字串。短音節必須轉成自然發音拼寫法，防止引擎逐字拼讀：
    wa→wah, ter→tur, ber→bur, ger→gur, er→ur, bur→burr, i→eye, a→ah, ce→ss
 3. syllables：把完整單字用「·」標記音節切割位置，例如 "ham·burg·er"、"com·pu·ter"、"wa·ter"。單音節字就寫原字。
-4. rootInfo：延伸學習資訊，包含以下欄位（全部必填）：
-   - targetChunk：最核心的字根/字首/字尾所在的 chunk text
+4. rootInfo：延伸學習資訊。【每個字都必須有 rootInfo，絕對不可省略！】
+   即使是簡單的單音節字（如 dress, pants, hat）也一定要有 rootInfo。
+   如果沒有明顯字根，就寫字源故事和有趣的語言知識。
+   包含以下欄位（全部必填）：
+   - targetChunk：最核心的 chunk text（單音節字就填整個字）
    - emoji：一個代表這個字的 emoji
-   - title：標題，格式 "emoji 字根（中文意思）"，如 "🏰 burg（城堡城市）"
-   - root：字根拆解公式，如 "bi-（兩個）+ cycle（輪子）"
-   - root_story：用繁體中文解釋字根拆解，50 字以內，語氣活潑像跟小朋友說話
+   - title：標題，格式 "emoji word（中文意思）"，如 "👗 dress（洋裝）"
+   - root：字根拆解公式。沒有明顯字根的就寫語源，如 "古法文 dresser（整理）"
+   - root_story：用繁體中文解釋字根或語源，50 字以內，語氣活潑像跟小朋友說話
    - etymology_story：字源故事，這個字從哪來的？有什麼有趣歷史？50 字以內，要有畫面感
-   - word_family：同字根的常見單字陣列（2~4 個），如 ["bicycle","recycle","cyclone"]
+   - word_family：同字根或相關的常見單字陣列（2~4 個），如 ["bicycle","recycle","cyclone"]
+   - synonyms：同義字陣列（1~3 個），如 ["gown","outfit"]。找不到就給空陣列 []
+   - antonyms：反義字陣列（1~3 個），如 ["undress"]。找不到就給空陣列 []
 
 【重要】root_story 和 etymology_story 是兩個不同的故事！
 - root_story 重點在「拆字」：把字拆開來、每個零件什麼意思、組合起來為什麼是這個意思
 - etymology_story 重點在「歷史」：這個字從哪個語言來的、以前的人怎麼用、有什麼好玩的由來
+【再次強調】rootInfo 是必填欄位！不管什麼字都要有！
 
 【Phonics 視覺標記規則 (highlights)】
 請仔細檢查每個 chunk 是否包含以下規則，有的話務必加入 highlights：
@@ -1117,7 +1135,7 @@ hintClass 可用：hl-ur、hl-er、hl-water、hl-purple、hl-cream、hl-magic、
 layout 可用：single(單音節)、standard(多音節)、compound(複合字如 hot dog)
 
 JSON 範例：
-{"word":"bicycle","syllables":"bi·cy·cle","chunks":[{"text":"bi","tts":"bye","highlights":[]},{"text":"cy","tts":"sigh","highlights":[]},{"text":"cle","tts":"kul","highlights":[]}],"layout":"standard","fullTts":"bicycle","rootInfo":{"targetChunk":"cy","emoji":"🚲","title":"🚲 cycle（輪子）","root":"bi-（兩個）+ cycle（圓圈/輪子）","root_story":"bi- 就像雙胞胎代表「兩個」，cycle 是圓圓的輪子，兩個輪子轉呀轉就是腳踏車！","etymology_story":"以前的腳踏車前輪超大後輪超小，長得很搞笑！法國人叫它 bicyclette，傳到英文變成 bicycle。","word_family":["bicycle","recycle","cyclone","tricycle"]}}`;
+{"word":"bicycle","syllables":"bi·cy·cle","chunks":[{"text":"bi","tts":"bye","highlights":[]},{"text":"cy","tts":"sigh","highlights":[]},{"text":"cle","tts":"kul","highlights":[]}],"layout":"standard","fullTts":"bicycle","rootInfo":{"targetChunk":"cy","emoji":"🚲","title":"🚲 cycle（輪子）","root":"bi-（兩個）+ cycle（圓圈/輪子）","root_story":"bi- 就像雙胞胎代表「兩個」，cycle 是圓圓的輪子，兩個輪子轉呀轉就是腳踏車！","etymology_story":"以前的腳踏車前輪超大後輪超小，長得很搞笑！法國人叫它 bicyclette，傳到英文變成 bicycle。","word_family":["bicycle","recycle","cyclone","tricycle"],"synonyms":["bike","cycle"],"antonyms":[]}}`;
       try {
         const data = await callGemini({
           contents: [{ parts: [{ text: `分析：${word}` }] }],
@@ -1133,24 +1151,41 @@ JSON 範例：
     // 智慧解析：快取 → Gemini → 靜態詞庫 → 基本
     async function resolveWord(word) {
       const cached = getCache(word);
-      if (cached) return cached;
+      if (cached) { ensureRootInfo(cached); return cached; }
       if (GEMINI_KEY) {
         const g = await fetchFromGemini(word);
-        if (g?.chunks?.length) { setCache(word, g); return g; }
+        if (g?.chunks?.length) { ensureRootInfo(g); setCache(word, g); return g; }
       }
       const key = word.toLowerCase().replace(/[\s\-\.\']/g, '');
       if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key]) {
         const e = JSON.parse(JSON.stringify(PHONICS_DICT[key]));
-        setCache(word, e); return e;
+        ensureRootInfo(e); setCache(word, e); return e;
       }
       if (word.includes('-')) {
         const ch = word.split('-').map(s => s.trim()).filter(Boolean);
         const e = { word: ch.join(''), layout: ch.length === 1 ? 'single' : 'standard',
           fullTts: ch.join(''), chunks: ch.map(t => ({ text: t, tts: t, highlights: [] })) };
-        setCache(word, e); return e;
+        ensureRootInfo(e); setCache(word, e); return e;
       }
       const e = { word, layout: 'single', fullTts: word, chunks: [{ text: word, tts: word, highlights: [] }] };
-      setCache(word, e); return e;
+      ensureRootInfo(e); setCache(word, e); return e;
+    }
+
+    // 確保每個 lesson 都有 rootInfo（即使 Gemini 沒回傳）
+    function ensureRootInfo(lesson) {
+      if (lesson.rootInfo) return;
+      const w = lesson.word || '';
+      lesson.rootInfo = {
+        targetChunk: lesson.chunks?.[0]?.text || w,
+        emoji: '📖',
+        title: '📖 ' + w,
+        root: '',
+        root_story: '點擊「🔊 唸給我聽」聽聽看這個字怎麼唸！',
+        etymology_story: '',
+        word_family: [],
+        synonyms: [],
+        antonyms: []
+      };
     }
 
     // ══════════════════════════════════════════
@@ -1173,36 +1208,51 @@ JSON 範例：
       }
 
       // 字根故事（向下兼容舊 story 欄位）
-      document.getElementById('root-story').textContent = rootInfo.root_story || rootInfo.story || '';
+      const rootStory = rootInfo.root_story || rootInfo.story || '';
+      const rootSectionEl = document.getElementById('root-section-root');
+      document.getElementById('root-story').textContent = rootStory;
+      rootSectionEl.style.display = rootStory ? 'block' : 'none';
 
       // 字源故事
       const etymEl = document.getElementById('root-etymology');
+      const etymSectionEl = document.getElementById('root-section-etym');
       if (rootInfo.etymology_story) {
         etymEl.textContent = rootInfo.etymology_story;
-        etymEl.parentElement.style.display = 'block';
+        etymSectionEl.style.display = 'block';
       } else {
-        etymEl.parentElement.style.display = 'none';
+        etymSectionEl.style.display = 'none';
       }
 
       // 同根字家族
-      const famSection = document.getElementById('root-family-section');
-      const famWords = document.getElementById('root-family-words');
-      if (rootInfo.word_family?.length) {
-        famWords.innerHTML = '';
-        rootInfo.word_family.forEach(w => {
+      populateWordTags('root-family-section', 'root-family-words', rootInfo.word_family);
+
+      // 同義字
+      populateWordTags('root-syn-section', 'root-synonyms', rootInfo.synonyms);
+
+      // 反義字
+      populateWordTags('root-ant-section', 'root-antonyms', rootInfo.antonyms);
+
+      document.getElementById('root-modal').classList.add('open');
+    }
+
+    function populateWordTags(sectionId, containerId, words) {
+      const section = document.getElementById(sectionId);
+      const container = document.getElementById(containerId);
+      if (words?.length) {
+        container.innerHTML = '';
+        words.forEach(w => {
           const tag = document.createElement('span');
           tag.className = 'family-word';
           tag.textContent = w;
           tag.onclick = () => speak(w, 0.8);
-          famWords.appendChild(tag);
+          container.appendChild(tag);
         });
-        famSection.style.display = 'block';
+        section.style.display = 'block';
       } else {
-        famSection.style.display = 'none';
+        section.style.display = 'none';
       }
-
-      document.getElementById('root-modal').classList.add('open');
     }
+
     function closeRootModal() {
       document.getElementById('root-modal').classList.remove('open');
       currentRootInfo = null;
@@ -1211,6 +1261,29 @@ JSON 範例：
       if (!currentRootInfo) return;
       const text = (currentRootInfo.root_story || currentRootInfo.story || '') + '。' + (currentRootInfo.etymology_story || '');
       if (text.trim()) speakChinese(text);
+    }
+    function shareRootInfo() {
+      if (!currentRootInfo) return;
+      const title = currentRootInfo.title || '';
+      const root = currentRootInfo.root ? '字根：' + currentRootInfo.root + '\n' : '';
+      const story1 = currentRootInfo.root_story ? '拆解：' + currentRootInfo.root_story + '\n' : '';
+      const story2 = currentRootInfo.etymology_story ? '字源：' + currentRootInfo.etymology_story + '\n' : '';
+      const family = currentRootInfo.word_family?.length ? '同根字：' + currentRootInfo.word_family.join(', ') + '\n' : '';
+      const syn = currentRootInfo.synonyms?.length ? '同義字：' + currentRootInfo.synonyms.join(', ') + '\n' : '';
+      const ant = currentRootInfo.antonyms?.length ? '反義字：' + currentRootInfo.antonyms.join(', ') + '\n' : '';
+      const text = title + '\n' + root + story1 + story2 + family + syn + ant;
+
+      if (navigator.share) {
+        navigator.share({ title: title, text: text }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 24px;background:#1a1a2e;color:#e8e8f0;border-radius:16px;font-size:0.9rem;font-weight:700;z-index:99999;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+          toast.textContent = '✅ 已複製到剪貼簿！';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 1500);
+        });
+      }
     }
 
     // ══════════════════════════════════════════
