@@ -688,6 +688,7 @@
     <div class="user-switcher">
       <button class="user-btn active-user" id="btn-iggy" onclick="switchUser('iggy')">🦊 Iggy</button>
       <button class="user-btn" id="btn-yoyo" onclick="switchUser('yoyo')">🐸 Yoyo</button>
+      <button class="user-btn" id="btn-w1200" onclick="switchUser('w1200')">📚 1200</button>
     </div>
     <div class="word-pills" id="word-pills"></div>
     <div class="api-badge" id="api-badge" onclick="showApiStatus()" title="API 配額狀態">—</div>
@@ -939,7 +940,7 @@
     let GEMINI_KEY = '';
     let usingDefaults = true;
     let currentUser = 'iggy';
-    const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo' };
+    const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo', w1200: '📚 國小1200' };
     let preferredVoice = null;
     let audioManifest = null; // MP3 音檔清單
 
@@ -1501,20 +1502,199 @@ JSON 範例：
     // 設定 Modal
     // ══════════════════════════════════════════
     async function switchUser(userId) {
-      // 儲存當前進度
       currentUser = userId;
       try { localStorage.setItem('phonics-current-user', userId); } catch(e) {}
 
-      // 更新按鈕樣式
       document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active-user'));
-      document.getElementById('btn-' + userId).classList.add('active-user');
+      const btn = document.getElementById('btn-' + userId);
+      if (btn) btn.classList.add('active-user');
 
-      // 載入該使用者的字單
+      // w1200 特殊處理：如果本地沒有字單，自動載入 WORDS_1200
+      if (userId === 'w1200' && typeof WORDS_1200 !== 'undefined') {
+        const saved = localStorage.getItem('phonics-w1200-words');
+        if (!saved) {
+          // 第一次切換到 1200：自動載入全部字單
+          await load1200WithBackground();
+          return;
+        }
+      }
+
       await loadUserLessons();
       currentWordIdx = 0;
       if (currentPhase === 3) switchPhase(1);
       renderWordPills();
       if (LESSONS.length > 0) loadCurrentWord();
+    }
+
+    // 載入 1200 字單 — 先從快取/Firebase 載入已有的，其餘背景批次分析
+    async function load1200WithBackground() {
+      if (typeof WORDS_1200 === 'undefined') return;
+      const allWords = WORDS_1200.slice();
+
+      // Step 1: 從 Firebase 批次預熱本地快取
+      const overlay = document.getElementById('fetch-overlay');
+      const foWord = document.getElementById('fo-word');
+      const foFill = document.getElementById('fo-fill');
+      const foStatus = document.getElementById('fo-status');
+      overlay.classList.add('show');
+      foStatus.textContent = '☁️ 從雲端載入快取...';
+      foWord.textContent = '';
+      foFill.style.width = '0%';
+
+      await warmLocalCacheFromFirebase(allWords);
+
+      // Step 2: 快速組裝 — 只用本地快取/靜態詞庫，不呼叫 Gemini
+      foStatus.textContent = '📦 組裝字單...';
+      LESSONS = [];
+      const needsAI = []; // 需要 AI 分析的字
+      for (let i = 0; i < allWords.length; i++) {
+        const word = allWords[i];
+        if (i % 50 === 0) {
+          foFill.style.width = `${(i / allWords.length) * 80}%`;
+          foWord.textContent = word;
+          await new Promise(r => setTimeout(r, 0)); // yield to UI
+        }
+        const cached = getCache(word);
+        if (cached && cached.rootInfo && cached.rootInfo.root_story !== '點擊「🔊 唸給我聽」聽聽看這個字怎麼唸！') {
+          // 有完整的 AI 分析快取
+          ensureRootInfo(cached);
+          LESSONS.push(cached);
+        } else {
+          // 用靜態詞庫或 fallback，稍後背景補 AI 分析
+          const key = word.toLowerCase().replace(/[\s\-\.\']/g, '');
+          let lesson;
+          if (typeof PHONICS_DICT !== 'undefined' && PHONICS_DICT[key]) {
+            lesson = JSON.parse(JSON.stringify(PHONICS_DICT[key]));
+          } else {
+            lesson = { word, layout: 'single', fullTts: word, chunks: [{ text: word, tts: word, highlights: [] }] };
+          }
+          ensureRootInfo(lesson);
+          LESSONS.push(lesson);
+          needsAI.push({ word, index: LESSONS.length - 1 });
+        }
+      }
+
+      foFill.style.width = '100%';
+      foStatus.textContent = `✅ ${LESSONS.length} 字已載入！${needsAI.length > 0 ? `（${needsAI.length} 字待 AI 分析）` : ''}`;
+      await new Promise(r => setTimeout(r, 600));
+      overlay.classList.remove('show');
+
+      usingDefaults = false;
+      try { localStorage.setItem('phonics-' + currentUser + '-words', JSON.stringify(LESSONS)); } catch(e) {}
+      firebaseSaveWords(currentUser, allWords);
+      showOrHideEmptyState();
+      currentWordIdx = 0;
+      renderWordPills();
+      if (LESSONS.length > 0) loadCurrentWord();
+
+      // Step 3: 背景批次 AI 分析（不阻塞 UI）
+      if (needsAI.length > 0 && GEMINI_KEY) {
+        bgBatchAnalyze(needsAI);
+      }
+    }
+
+    // ══════════════════════════════════════════
+    // 背景批次 AI 分析（Rate-limited: ~10 RPM，不超過 Tier 1）
+    // ══════════════════════════════════════════
+    let _bgRunning = false;
+    let _bgPaused = false;
+    let _bgProgress = { done: 0, total: 0, errors: 0 };
+
+    async function bgBatchAnalyze(items) {
+      if (_bgRunning) { console.log('⚠️ 背景分析已在執行中'); return; }
+      _bgRunning = true;
+      _bgPaused = false;
+      _bgProgress = { done: 0, total: items.length, errors: 0 };
+
+      console.log(`🔄 背景分析開始：${items.length} 字待處理（限速 ~10 RPM）`);
+      updateBgBadge();
+
+      const INTERVAL_MS = 6500; // ~9.2 RPM，安全低於 150 RPM 且留餘量給前景操作
+      const MAX_ERRORS = 10;    // 連續錯誤超過 10 次暫停
+
+      let consecutiveErrors = 0;
+
+      for (let i = 0; i < items.length; i++) {
+        if (_bgPaused) {
+          console.log('⏸️ 背景分析已暫停');
+          break;
+        }
+
+        const { word, index } = items[i];
+
+        // 先再檢查快取（可能前景操作已分析過）
+        const cached = getCache(word);
+        if (cached && cached.grammar && cached.rootInfo?.root_story !== '點擊「🔊 唸給我聽」聽聽看這個字怎麼唸！') {
+          _bgProgress.done++;
+          updateBgBadge();
+          continue;
+        }
+
+        try {
+          const result = await fetchFromGemini(word);
+          if (result?.chunks?.length) {
+            ensureRootInfo(result);
+            setCache(word, result);
+            // 更新 LESSONS 陣列（如果使用者還在 w1200）
+            if (currentUser === 'w1200' && index < LESSONS.length && LESSONS[index].word === word) {
+              LESSONS[index] = result;
+            }
+            consecutiveErrors = 0;
+          } else {
+            consecutiveErrors++;
+          }
+        } catch(e) {
+          console.warn('背景分析失敗:', word, e.message);
+          _bgProgress.errors++;
+          consecutiveErrors++;
+        }
+
+        _bgProgress.done++;
+        updateBgBadge();
+
+        if (consecutiveErrors >= MAX_ERRORS) {
+          console.error('❌ 連續錯誤太多，暫停背景分析');
+          _bgPaused = true;
+          break;
+        }
+
+        // Rate limit: 等待間隔
+        if (i < items.length - 1 && !_bgPaused) {
+          await new Promise(r => setTimeout(r, INTERVAL_MS));
+        }
+      }
+
+      // 完成後儲存
+      if (currentUser === 'w1200') {
+        try { localStorage.setItem('phonics-w1200-words', JSON.stringify(LESSONS)); } catch(e) {}
+        const newCache = {};
+        LESSONS.forEach(l => { if (l.word && l.grammar) newCache[l.word] = l; });
+        firebaseCacheBatchSave(newCache);
+      }
+
+      _bgRunning = false;
+      updateBgBadge();
+      console.log(`✅ 背景分析完成：${_bgProgress.done}/${_bgProgress.total}，錯誤 ${_bgProgress.errors}`);
+    }
+
+    function updateBgBadge() {
+      const badge = document.getElementById('api-badge');
+      if (!badge) return;
+      if (_bgRunning) {
+        badge.textContent = `⏳${_bgProgress.done}/${_bgProgress.total}`;
+        badge.title = `背景 AI 分析中...（${_bgProgress.done}/${_bgProgress.total}）\n錯誤：${_bgProgress.errors}\n點擊暫停`;
+        badge.style.cursor = 'pointer';
+        badge.onclick = () => {
+          _bgPaused = !_bgPaused;
+          if (_bgPaused) {
+            badge.textContent = '⏸️';
+            badge.title = '背景分析已暫停，點擊查看 API 狀態';
+          }
+        };
+      } else {
+        badge.onclick = () => showApiStatus();
+        apiUpdateBadge();
+      }
     }
 
     async function loadUserLessons() {
