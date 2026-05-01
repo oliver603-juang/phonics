@@ -1515,6 +1515,7 @@ JSON 範例：
     function closeRootModal() {
       document.getElementById('root-modal').classList.remove('open');
       currentRootInfo = null;
+      synth.cancel(); // 關閉視窗時停止語音
     }
     function readRootStory() {
       if (!currentRootInfo) return;
