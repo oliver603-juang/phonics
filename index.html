@@ -720,12 +720,12 @@
       <button class="user-btn" id="btn-w1200" onclick="switchUser('w1200')">📚 1200</button>
     </div>
     <div class="word-pills" id="word-pills"></div>
-    <div class="progress-bar-container" id="progress-container">
-      <div class="progress-bar-outer"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
-      <div class="progress-label" id="progress-label"></div>
-    </div>
     <div class="api-badge" id="api-badge" onclick="showApiStatus()" title="API 配額狀態">—</div>
     <button class="gear-btn" onclick="openSettings()">⚙️</button>
+  </div>
+  <div class="progress-bar-container" id="progress-container" style="padding:2px 16px 4px;">
+    <div class="progress-bar-outer"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-label" id="progress-label"></div>
   </div>
   <nav class="nav">
     <button class="nav-btn active" onclick="switchPhase(1)">👀 聽與看</button>
@@ -2084,7 +2084,7 @@ JSON 範例：
       buildPhase3(lesson);
       if (currentPhase === 3) {
         checkOrientation();
-        raf2(() => initAllCanvas());
+        buildLetterTileWall();
       }
     }
     function raf2(fn) { requestAnimationFrame(() => requestAnimationFrame(fn)); }
@@ -2357,17 +2357,158 @@ JSON 範例：
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById(`phase${num}`).classList.add('active');
       document.querySelectorAll('.nav-btn')[num - 1].classList.add('active');
-      renderWordPills(); // 切換時更新藥丸（Phase 3 隱藏拼寫）
-      if (num === 3) { checkOrientation(); raf2(() => initAllCanvas()); }
-      else document.getElementById('rotate-prompt').style.display = 'none';
+      renderWordPills();
+      // 動態磚牆：Phase 3 顯示，其他 Phase 隱藏
+      const tileWall = document.getElementById('letter-tiles');
+      if (num === 3) {
+        checkOrientation();
+        buildLetterTileWall();
+      } else {
+        if (tileWall) tileWall.style.display = 'none';
+        document.getElementById('rotate-prompt').style.display = 'none';
+      }
+    }
+
+    // ══════════════════════════════════════════
+    // 動態磚牆（Phase 3 手寫）
+    // ══════════════════════════════════════════
+    // 規則：
+    //   多音節（≥2 chunks）：每個音節一層，層內字母均分
+    //   單音節（1 chunk）：每個字母一層，每層 1 個磚佔滿
+    //   磚牆填滿 nav 以下所有空間
+    //   右上角 🔊 唸整個音節，最後一磚右下角 📝交卷
+    function buildLetterTileWall() {
+      document.getElementById('letter-tiles')?.remove();
+
+      const lesson = LESSONS[currentWordIdx];
+      if (!lesson || !lesson.chunks) return;
+      const chunks = lesson.chunks;
+
+      const TILE_COLORS = [
+        { bg: 'rgb(143,168,139)', border: '#5b8c5a' },
+        { bg: 'rgb(131,163,178)', border: '#5a8faa' },
+        { bg: 'rgb(193,128,108)', border: '#c4614a' },
+        { bg: 'rgb(178,153,120)', border: '#a08050' },
+        { bg: 'rgb(140,140,170)', border: '#8080a0' }
+      ];
+
+      // 佈局規則：多音節每音節一層，單音節每字母一層
+      let rows;
+      if (chunks.length >= 2) {
+        rows = chunks.map((chunk, ci) => ({
+          letters: chunk.text.split('').map(ch => ({ char: ch, chunkIdx: ci, chunkTts: chunk.tts || chunk.text })),
+          colorIdx: ci
+        }));
+      } else {
+        const chunk = chunks[0];
+        rows = chunk.text.split('').map(ch => ({
+          letters: [{ char: ch, chunkIdx: 0, chunkTts: chunk.tts || chunk.text }],
+          colorIdx: 0
+        }));
+      }
+
+      // 隱藏原本的三大色塊
+      const p3Layout = document.getElementById('p3-layout');
+      if (p3Layout) p3Layout.style.setProperty('display', 'none', 'important');
+      const p3Footer = document.querySelector('#phase3 .p3-footer');
+      if (p3Footer) p3Footer.style.setProperty('display', 'none', 'important');
+
+      // 計算 nav 底部位置
+      const nav = document.querySelector('.nav');
+      const navBottom = nav ? nav.getBoundingClientRect().bottom : 90;
+
+      // 建立牆面容器
+      const wall = document.createElement('div');
+      wall.id = 'letter-tiles';
+      wall.style.cssText = `position:fixed;top:${Math.round(navBottom)+2}px;left:4px;right:4px;bottom:4px;display:flex;flex-direction:column;gap:3px;z-index:50;`;
+
+      let globalIdx = 0;
+      const totalLetters = rows.reduce((s, r) => s + r.letters.length, 0);
+
+      rows.forEach(rowData => {
+        const color = TILE_COLORS[rowData.colorIdx % TILE_COLORS.length];
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:3px;flex:1;min-height:0;';
+
+        rowData.letters.forEach(l => {
+          const isLast = (globalIdx === totalLetters - 1);
+
+          const tile = document.createElement('div');
+          tile.style.cssText = `flex:1;min-width:0;height:100%;background:${color.bg};border:2px solid ${color.border};border-radius:10px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.2);`;
+
+          // 左下角數字
+          const num = document.createElement('span');
+          num.style.cssText = 'position:absolute;bottom:3px;left:5px;font-size:0.55rem;font-weight:700;color:rgba(255,255,255,0.4);font-family:inherit;z-index:5;';
+          num.textContent = globalIdx + 1;
+          tile.appendChild(num);
+
+          // 右上角語音按鈕（唸整個音節）
+          const sb = document.createElement('button');
+          sb.style.cssText = 'position:absolute;top:3px;right:3px;z-index:10;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,0.2);color:white;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+          sb.textContent = '🔊';
+          sb.addEventListener('pointerdown', e => e.stopPropagation());
+          sb.addEventListener('click', e => { e.stopPropagation();e.preventDefault();speak(l.chunkTts,0.8);sb.style.transform='scale(0.85)';setTimeout(()=>sb.style.transform='',150); });
+          tile.appendChild(sb);
+
+          // 交卷按鈕（最後一磚右下角）
+          if (isLast) {
+            const sub = document.createElement('button');
+            sub.style.cssText = 'position:absolute;bottom:3px;right:3px;z-index:10;padding:5px 12px;border-radius:12px;border:none;background:#ffd700;color:#333;font-family:inherit;font-size:0.65rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.3);';
+            sub.textContent = '📝 交卷';
+            sub.addEventListener('pointerdown', e => e.stopPropagation());
+            sub.addEventListener('click', e => { e.stopPropagation(); /* TODO: 連接手寫辨識引擎 */ });
+            tile.appendChild(sub);
+          }
+
+          // 淡色字母參考
+          const ghost = document.createElement('span');
+          ghost.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(12vw,15vh);font-weight:700;color:rgba(255,255,255,0.12);font-family:inherit;pointer-events:none;z-index:1;';
+          ghost.textContent = l.char;
+          tile.appendChild(ghost);
+
+          // Canvas 手寫
+          const canvas = document.createElement('canvas');
+          canvas.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;z-index:3;touch-action:none;';
+          function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = tile.getBoundingClientRect();
+            if (rect.width < 1) return;
+            canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.lineWidth = 3; ctx.strokeStyle = '#333';
+            canvas._ctx = ctx; canvas._w = rect.width; canvas._h = rect.height;
+          }
+          requestAnimationFrame(() => requestAnimationFrame(() => setupCanvas()));
+
+          let drawing = false, lx = 0, ly = 0;
+          function gp(e) { const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return [t.clientX - r.left, t.clientY - r.top]; }
+          canvas.addEventListener('pointerdown', e => { if (!canvas._ctx) setupCanvas(); drawing = true; [lx, ly] = gp(e); canvas.setPointerCapture(e.pointerId); e.preventDefault(); });
+          canvas.addEventListener('pointermove', e => { if (!drawing || !canvas._ctx) return; const [x, y] = gp(e); canvas._ctx.beginPath(); canvas._ctx.moveTo(lx, ly); canvas._ctx.lineTo(x, y); canvas._ctx.stroke(); [lx, ly] = [x, y]; e.preventDefault(); });
+          canvas.addEventListener('pointerup', () => drawing = false);
+          canvas.addEventListener('pointercancel', () => drawing = false);
+
+          // 長按 0.6 秒清除
+          let pt;
+          tile.addEventListener('pointerdown', () => { pt = setTimeout(() => { if (canvas._ctx) canvas._ctx.clearRect(0, 0, canvas._w, canvas._h); tile.style.opacity = '0.5'; setTimeout(() => tile.style.opacity = '1', 200); }, 600); });
+          tile.addEventListener('pointerup', () => clearTimeout(pt));
+          tile.addEventListener('pointermove', () => clearTimeout(pt));
+
+          tile.appendChild(canvas);
+          row.appendChild(tile);
+          globalIdx++;
+        });
+        wall.appendChild(row);
+      });
+
+      document.body.appendChild(wall);
     }
     function checkOrientation() {
-      // Landscape lock removed — allow portrait handwriting
       const p = document.getElementById('rotate-prompt');
       p.style.display = 'none';
     }
     window.addEventListener('resize', () => {
-      if (currentPhase === 3) raf2(() => initAllCanvas());
+      if (currentPhase === 3) buildLetterTileWall();
     });
 
     // ══════════════════════════════════════════
