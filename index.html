@@ -398,8 +398,10 @@
     .root-modal .grammar-note { color: #777; font-size: 0.78rem; margin-bottom: 4px; }
     .root-modal .grammar-example {
       font-style: italic; color: #555; margin: 4px 0 2px;
+      cursor: pointer; user-select: text; -webkit-user-select: text;
     }
-    .root-modal .grammar-example-tw { color: #888; font-size: 0.8rem; }
+    .root-modal .grammar-example:active { opacity: 0.6; }
+    .root-modal .grammar-example-tw { color: #888; font-size: 0.8rem; user-select: text; -webkit-user-select: text; }
     .root-modal .grammar-inflections {
       display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
     }
@@ -1476,9 +1478,10 @@ JSON 範例：
         html += '</div>';
       }
 
-      // 例句
+      // 例句（點擊朗讀）
       if (grammar.example) {
-        html += `<div class="grammar-example">${grammar.example}</div>`;
+        const escaped = grammar.example.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += `<div class="grammar-example" onclick="speak('${escaped}', 0.85)" title="點擊朗讀">🔊 ${grammar.example}</div>`;
         if (grammar.example_tw) html += `<div class="grammar-example-tw">${grammar.example_tw}</div>`;
       }
 
