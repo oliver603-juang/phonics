@@ -2128,9 +2128,11 @@ JSON 範例：
         const letters = buildLetterMap(chunk.text, chunk.highlights);
         letters.forEach(lm => {
           const span = document.createElement('span');
-          span.className = 'chunk-letter';
+          const cssStr = lm.cssClasses.join(' ');
+          // 初始狀態就顯示 highlight 顏色（不等播放動畫）
+          span.className = 'chunk-letter' + (cssStr ? ' ' + cssStr : '');
           span.textContent = lm.char;
-          span.dataset.css = lm.cssClasses.join(' ');
+          span.dataset.css = cssStr;
           group.appendChild(span);
         });
         container.appendChild(group);
@@ -2237,9 +2239,10 @@ JSON 範例：
         const letters = buildLetterMap(chunk.text, chunk.highlights);
         letters.forEach(lm => {
           const span = document.createElement('span');
-          span.className = 'chunk-letter';
+          const cssStr = lm.cssClasses.join(' ');
+          span.className = 'chunk-letter' + (cssStr ? ' ' + cssStr : '');
           span.textContent = lm.char;
-          span.dataset.css = lm.cssClasses.join(' ');
+          span.dataset.css = cssStr;
           group.appendChild(span);
         });
         container.appendChild(group);
