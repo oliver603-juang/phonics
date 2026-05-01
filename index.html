@@ -468,6 +468,33 @@
     }
     .preset-btn:active { transform: scale(0.95); }
     .preset-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* 進度追蹤 */
+    .progress-bar-container {
+      width: 100%; max-width: 600px; margin: 4px auto 0;
+      padding: 0 12px; display: none;
+    }
+    .progress-bar-container.show { display: block; }
+    .progress-bar-outer {
+      height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,0.08); overflow: hidden;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--gold), #ff9500);
+      transition: width 0.4s ease;
+    }
+    .progress-label {
+      font-size: 0.6rem; color: #888; text-align: center;
+      margin-top: 2px;
+    }
+    .pill.done { border-color: rgba(91,140,90,0.5); }
+    .pill.done::after {
+      content: '✓'; position: absolute; top: -4px; right: -2px;
+      font-size: 0.45rem; color: #5b8c5a;
+    }
+    .pill { position: relative; }
     .sync-badge {
       font-size: 0.5rem; color: #5b8c5a; padding: 1px 6px;
       border-radius: 8px; background: rgba(91,140,90,0.1);
@@ -691,6 +718,10 @@
       <button class="user-btn" id="btn-w1200" onclick="switchUser('w1200')">📚 1200</button>
     </div>
     <div class="word-pills" id="word-pills"></div>
+    <div class="progress-bar-container" id="progress-container">
+      <div class="progress-bar-outer"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="progress-label"></div>
+    </div>
     <div class="api-badge" id="api-badge" onclick="showApiStatus()" title="API 配額狀態">—</div>
     <button class="gear-btn" onclick="openSettings()">⚙️</button>
   </div>
@@ -943,6 +974,52 @@
     const USER_NAMES = { iggy: '🦊 Iggy', yoyo: '🐸 Yoyo', w1200: '📚 國小1200' };
     let preferredVoice = null;
     let audioManifest = null; // MP3 音檔清單
+
+    // ═══ 進度追蹤 ═══
+    // progress[word] = { listened: bool, spoken: bool, written: bool }
+    let progress = {};
+
+    function loadProgress() {
+      try {
+        progress = JSON.parse(localStorage.getItem('phonics-' + currentUser + '-progress') || '{}');
+        // 也恢復上次的位置
+        const savedIdx = localStorage.getItem('phonics-' + currentUser + '-idx');
+        if (savedIdx !== null) currentWordIdx = Math.max(0, parseInt(savedIdx) || 0);
+      } catch(e) { progress = {}; }
+    }
+    function saveProgress() {
+      try {
+        localStorage.setItem('phonics-' + currentUser + '-progress', JSON.stringify(progress));
+        localStorage.setItem('phonics-' + currentUser + '-idx', String(currentWordIdx));
+      } catch(e) {}
+    }
+    function markProgress(word, phase) {
+      if (!word) return;
+      const key = word.toLowerCase();
+      if (!progress[key]) progress[key] = {};
+      if (phase === 1) progress[key].listened = true;
+      if (phase === 2) progress[key].spoken = true;
+      if (phase === 3) progress[key].written = true;
+      saveProgress();
+      updateProgressBar();
+      renderWordPills(); // 更新 pill 的完成狀態
+    }
+    function isWordDone(word) {
+      const p = progress[word?.toLowerCase()];
+      return p && p.listened && p.spoken && p.written;
+    }
+    function updateProgressBar() {
+      const container = document.getElementById('progress-container');
+      const fill = document.getElementById('progress-fill');
+      const label = document.getElementById('progress-label');
+      if (!container || !LESSONS.length) return;
+      const total = LESSONS.length;
+      const done = LESSONS.filter(l => isWordDone(l.word)).length;
+      const pct = Math.round((done / total) * 100);
+      fill.style.width = pct + '%';
+      label.textContent = `${done}/${total} 完成 (${pct}%)`;
+      container.classList.toggle('show', total > 0);
+    }
 
     // ═══ Gemini Model Fallback + 429 Retry ═══
     const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
@@ -1520,7 +1597,9 @@ JSON 範例：
       }
 
       await loadUserLessons();
-      currentWordIdx = 0;
+      loadProgress(); // 恢復進度 + 上次位置
+      // 確保 currentWordIdx 在合理範圍內
+      if (currentWordIdx >= LESSONS.length) currentWordIdx = 0;
       if (currentPhase === 3) switchPhase(1);
       renderWordPills();
       if (LESSONS.length > 0) loadCurrentWord();
@@ -1967,20 +2046,22 @@ JSON 範例：
       c.innerHTML = '';
       LESSONS.forEach((l, i) => {
         const btn = document.createElement('button');
-        btn.className = 'pill' + (i === currentWordIdx ? ' active' : '');
-        // Phase 3 手寫階段：隱藏拼寫，只顯示序號
+        const done = isWordDone(l.word);
+        btn.className = 'pill' + (i === currentWordIdx ? ' active' : '') + (done ? ' done' : '');
         if (currentPhase === 3) {
           btn.textContent = `#${i + 1}`;
         } else {
           btn.textContent = l.word;
         }
-        btn.onclick = () => { currentWordIdx = i; renderWordPills(); loadCurrentWord(); };
+        btn.onclick = () => { currentWordIdx = i; saveProgress(); renderWordPills(); loadCurrentWord(); };
         c.appendChild(btn);
       });
+      updateProgressBar();
     }
     function goNextWord() {
       if (currentWordIdx < LESSONS.length - 1) {
         currentWordIdx++;
+        saveProgress();
         renderWordPills(); loadCurrentWord(); switchPhase(1);
       }
     }
@@ -2133,6 +2214,8 @@ JSON 範例：
       // 全部亮 + 完整唸
       await new Promise(r => setTimeout(r, 200));
       await speakFullWord(lesson);
+      // 標記 Phase 1 完成
+      markProgress(lesson.word, 1);
     }
 
     // ══════════════════════════════════════════
@@ -2188,6 +2271,7 @@ JSON 範例：
         if (t.includes(target) || target.includes(t)) {
           rd.innerHTML = `🎉 太棒了！`;
           rd.style.color = 'var(--color-er)';
+          markProgress(lesson.word, 2);
           // 亮起顏色
           lesson.chunks.forEach((_, ci) => {
             document.querySelectorAll(`#p2-c${ci} .chunk-letter`).forEach(el => {
@@ -2507,6 +2591,7 @@ Respond with JSON only — an array with one object per box:
       if (document.querySelectorAll('.syl-box canvas.locked').length === canvasIds.length) {
         document.getElementById('celebration').classList.add('show');
         speakFullWord(LESSONS[currentWordIdx]);
+        markProgress(LESSONS[currentWordIdx].word, 3);
         if (currentWordIdx < LESSONS.length - 1)
           document.getElementById('next-word-btn').classList.add('show');
       }
@@ -2534,6 +2619,7 @@ Respond with JSON only — an array with one object per box:
 
       // 載入該使用者的字單（可能從 Firebase）
       await loadUserLessons();
+      loadProgress(); // 恢復進度 + 上次位置
 
       // 載入 MP3 音檔清單（如果存在）
       fetch('assets/audio-manifest.json')
